@@ -13,6 +13,7 @@
  *    并把用户交互（点击节点、展开收起、缩放平移）写回运行时。
  */
 import type { Context } from 'dsh-better-sidebar'
+import { createElement } from 'react'
 import { SidebarAdapter, VIEW_TAB_TYPE } from './sidebar-adapter.tsx'
 import { ViewSessionManager } from './session-manager.ts'
 import { TabView } from './views/tab-view.tsx'
@@ -24,14 +25,6 @@ import { activeFileOf } from './sidebar-file.ts'
  * 与 dsh-better-sidebar-controller 客户端入口同款模式）。
  */
 export const inject = ['betterSidebar']
-
-/** 会话管理器（模块级单例，供组件层查询）。 */
-let sessionManager: ViewSessionManager | undefined
-
-/** 获取会话管理器（组件层使用）。 */
-export function getSessionManager(): ViewSessionManager | undefined {
-  return sessionManager
-}
 
 /** 会话是否合法（非空字符串）。 */
 function validSessionId(value: unknown): value is string {
@@ -48,15 +41,14 @@ export function apply(ctx: Context): void {
   ctx.effect(() => {
     const service = ctx.betterSidebar
     const manager = new ViewSessionManager()
-    sessionManager = manager
     let lastSessionId: string | undefined
 
     injectPluginStyle()
 
-    // 注册侧边栏页。组件懒引用 TabView，避免循环依赖。
+    // 注册侧边栏页。把 manager 显式传给组件，避免模块级单例和循环依赖。
     const adapter = new SidebarAdapter({
       service,
-      component: () => (props) => TabView(props),
+      component: () => (props) => createElement(TabView, { ...props, manager }),
     })
     const disposers: Array<() => void> = [adapter.registerTab()]
 
@@ -69,6 +61,9 @@ export function apply(ctx: Context): void {
         if (nextSession !== lastSessionId) {
           lastSessionId = nextSession
           manager.setActiveSession(nextSession)
+          // 自动打开「结构化文档」页签（每个会话首次激活时），否则用户
+          // 打开侧边栏只会看到文件树/编辑器，找不到视图页。
+          adapter.openViewTab()
         }
         const runtime = manager.getRuntime(nextSession)
         if (runtime !== undefined) {
@@ -90,7 +85,6 @@ export function apply(ctx: Context): void {
         }
       }
       manager.disposeAll()
-      if (sessionManager === manager) sessionManager = undefined
     }
   }, 'dsh-structured-document-view: client')
 }

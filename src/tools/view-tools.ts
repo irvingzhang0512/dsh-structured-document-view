@@ -188,7 +188,10 @@ const outlineNodeSchema: ParameterPropertySpec = {
     id: { type: 'string', required: true, description: 'Node ID。' },
     title: { type: 'string', required: true, description: '标题。' },
     role: { type: 'string', required: true, description: '角色。' },
-    children: { type: 'array', items: { type: 'object', additionalProperties: false }, description: '子节点。' },
+    // 嵌套子节点:输出 DSL 不支持递归 schema,故放宽为 additionalProperties: true;
+    // 若写成 additionalProperties:false 且无允许属性,任何深度 ≥2 的
+    // 大纲都会导致 get_view_state 输出校验失败(matched 0)。
+    children: { type: 'array', items: { type: 'object', additionalProperties: true }, description: '子节点。' },
   },
   description: '大纲节点。',
 }

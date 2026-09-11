@@ -5,9 +5,9 @@
  * 内容区：按当前视图渲染 Markdown / 思维导图 / 表格。
  * 用户交互全部走 ViewRuntime（更新视图状态并镜像到宿主）。
  */
-import { useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import type { TabComponentProps } from 'dsh-better-sidebar'
-import { getSessionManager } from '../index.ts'
+import type { ViewSessionManager } from '../session-manager.ts'
 import type { ViewRuntime } from '../runtime.ts'
 import type { ViewState } from '../../shared/view-state.ts'
 import { LAYOUT_LABELS, MIND_MAP_LAYOUTS, VIEW_LABELS, VIEW_NAMES } from '../../shared/view-state.ts'
@@ -17,8 +17,7 @@ import { MindMapView } from './mindmap-view.tsx'
 import { TableView } from './table-view.tsx'
 
 /** 每个视图的订阅集合（无变化即无重渲染）。 */
-function subscribeToRuntime(runtime: ViewRuntime | undefined, callback: () => void): () => void {
-  if (runtime === undefined) return () => undefined
+function subscribeToRuntime(runtime: ViewRuntime, callback: () => void): () => void {
   const offStore = runtime.store.subscribe(callback)
   const offBridge = runtime.bridge.subscribe(callback)
   const offRuntime = runtime.subscribe(callback)
@@ -30,25 +29,34 @@ function subscribeToRuntime(runtime: ViewRuntime | undefined, callback: () => vo
 }
 
 /** TabView 组件。 */
-export function TabView(props: TabComponentProps): React.ReactElement {
-  const { scope, visible } = props
-  const manager = getSessionManager()
-  const runtime = manager?.getRuntime(scope.sessionId)
+export interface StructuredDocumentTabProps extends TabComponentProps {
+  manager: ViewSessionManager
+}
+
+export function TabView(props: StructuredDocumentTabProps): React.ReactElement {
+  const { scope, visible, manager } = props
+  // scope 是该 Tab 的权威会话。即使 better-sidebar 的全局快照尚未通知，
+  // 首次/恢复渲染也必须同步取得 runtime，不能留下无法再次唤醒的空白页。
+  const runtime = useMemo(
+    () => manager.ensureRuntime(scope.sessionId),
+    [manager, scope.sessionId],
+  )
+
+  // 可见 Tab 主动兜底激活桥连接；setActiveSession 自身是幂等的。
+  useEffect(() => {
+    if (visible) manager.setActiveSession(scope.sessionId)
+  }, [manager, scope.sessionId, visible])
 
   // 订阅运行时状态（视图状态 + 文档变化）。
   useSyncExternalStore(
     (callback) => subscribeToRuntime(runtime, callback),
-    () => (runtime === undefined ? 0 : runtime.store.getState()),
-    () => (runtime === undefined ? 0 : runtime.store.getState()),
+    () => runtime.store.getState(),
+    () => runtime.store.getState(),
   )
 
   if (!visible) {
     return <div className="sdv-tab" />
   }
-  if (runtime === undefined) {
-    return <div className="sdv-empty">正在连接视图会话…</div>
-  }
-
   return <ViewPanel runtime={runtime} />
 }
 

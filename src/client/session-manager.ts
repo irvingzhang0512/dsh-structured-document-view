@@ -40,8 +40,11 @@ export class ViewSessionManager {
     if (this.disposed || sessionId === this.activeSessionId) return
     // 关闭旧会话的连接（运行时保留，切换回来可继续用）。
     if (this.activeSessionId !== null) {
-      const old = this.clients.get(this.activeSessionId)
+      const oldSessionId = this.activeSessionId
+      const old = this.clients.get(oldSessionId)
       old?.close()
+      // close() 后 client 不允许再次 connect；移除它，切回该会话时重建连接。
+      this.clients.delete(oldSessionId)
     }
     this.activeSessionId = sessionId
     this.ensureRuntime(sessionId)
