@@ -1,0 +1,21 @@
+# dsh-structured-document-view bundle patch
+#
+# 本文件是发布包 `dsh.bundle.patch` 层：通过官方 CLI 安装插件时
+#   dsh plugin --profile <name> add dsh-structured-document-view@<version>
+# 该命令会对照已安装包调和 `dsh.profile.bundles`，发现本声明后把
+# `dsh-structured-document-view` 追加进 bundle 栈；profile 启动时把本补丁
+# （一个 `insert` 插件行）像手动 cordis.patch.yml 挂载行一样合并。
+#
+# `name` 必须保持完整 npm 包名：client-modules 注册表按 loader 条目名解析
+# 浏览器 bundle，简写会导致客户端半区静默缺席 window.__DSH_BOOT__。
+#
+# 本插件与 dsh-better-sidebar 是软依赖：宿主半区（工具/桥）不依赖它，
+# 客户端半区仅在 `ctx.betterSidebar` 可用时激活。
+- insert:
+    - id: dsh-structured-document-view
+      name: 'dsh-structured-document-view'
+      # loader 模式下 entry options 才是权威 inject（cordis-plugin-loader
+      # 只读 entry.options.inject，不读模块导出的 `export const inject`）。
+      # 与 src/index.ts 的 inject 保持一致。
+      inject: [tools, webServer, webRuntime, skills]
+      config: {}

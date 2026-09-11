@@ -1,0 +1,156 @@
+{
+  "id": "project-smart-kitchen-v2",
+  "title": "智能厨房 App V2.0 项目",
+  "profile": "project",
+  "revision": 1,
+  "root": {
+    "id": "node_001",
+    "title": "智能厨房 App V2.0 项目",
+    "content": "V2.0 目标是完成智能识别与商城改版两大能力上线。",
+    "role": "note",
+    "properties": {},
+    "children": [
+      {
+        "id": "node_002",
+        "title": "目标：完成 V2.0 上线",
+        "content": "本季度唯一北极星目标。",
+        "role": "objective",
+        "properties": {},
+        "children": [
+          {
+            "id": "node_003",
+            "title": "关键结果：日活 5 万",
+            "content": "",
+            "role": "key_result",
+            "properties": {},
+            "children": []
+          },
+          {
+            "id": "node_004",
+            "title": "关键结果：崩溃率低于 0.1%",
+            "content": "",
+            "role": "key_result",
+            "properties": {},
+            "children": []
+          },
+          {
+            "id": "node_005",
+            "title": "关键结果：订单转化率提升 20%",
+            "content": "",
+            "role": "key_result",
+            "properties": {},
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "node_006",
+        "title": "阶段：开发冲刺",
+        "content": "当前迭代，重点交付识别与改版。",
+        "role": "milestone",
+        "properties": {},
+        "children": [
+          {
+            "id": "node_007",
+            "title": "热红外验证",
+            "content": "高温场景识别率提升到 92% 以上。",
+            "role": "task",
+            "properties": { "owner": "张三", "status": "进行中", "due_date": "本周", "progress": 50 },
+            "children": []
+          },
+          {
+            "id": "node_008",
+            "title": "人员检测",
+            "content": "多光源场景稳定性验证。",
+            "role": "task",
+            "properties": { "owner": "李四", "status": "未开始", "due_date": "下周", "progress": 0 },
+            "children": []
+          },
+          {
+            "id": "node_009",
+            "title": "商城改版",
+            "content": "首页与活动页改版开发。",
+            "role": "task",
+            "properties": { "owner": "王五", "status": "进行中", "due_date": "9月25日", "progress": 80 },
+            "children": []
+          },
+          {
+            "id": "node_010",
+            "title": "推送通道迁移",
+            "content": "迁移到新推送服务。",
+            "role": "task",
+            "properties": { "owner": "赵六", "status": "已完成", "due_date": "上周", "progress": 100 },
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "node_011",
+        "title": "阶段：灰度发布",
+        "content": "上线前的灰度与回滚预案。",
+        "role": "milestone",
+        "properties": {},
+        "children": [
+          {
+            "id": "node_012",
+            "title": "小流量灰度",
+            "content": "先灰度 5% 用户，观察指标后放量。",
+            "role": "task",
+            "properties": { "owner": "张三", "status": "未开始", "due_date": "10月1日", "progress": 0 },
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "node_013",
+        "title": "问题",
+        "content": "当前执行中的问题。",
+        "role": "note",
+        "properties": {},
+        "children": [
+          {
+            "id": "node_014",
+            "title": "灰度环境资源不足",
+            "content": "灰度集群需要扩容 2 台机器。",
+            "role": "issue",
+            "properties": {},
+            "children": []
+          },
+          {
+            "id": "node_015",
+            "title": "推送通道兼容性",
+            "content": "旧版本客户端不兼容新推送协议。",
+            "role": "issue",
+            "properties": {},
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "node_016",
+        "title": "风险",
+        "content": "需要持续关注的风险项。",
+        "role": "note",
+        "properties": {},
+        "children": [
+          {
+            "id": "node_017",
+            "title": "开发板性能瓶颈",
+            "content": "端侧算力有限，双模型同时推理可能超帧率预算。",
+            "role": "risk",
+            "properties": {},
+            "children": []
+          },
+          {
+            "id": "node_018",
+            "title": "第三方 SDK 涨价",
+            "content": "语音 SDK 明年可能涨价，需评估自研。",
+            "role": "risk",
+            "properties": {},
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

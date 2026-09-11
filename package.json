@@ -1,0 +1,108 @@
+{
+  "name": "dsh-structured-document-view",
+  "version": "0.2.0",
+  "description": "DSH plugin：基于 dsh-better-sidebar 展示结构化文档的 Markdown / 思维导图 / 表格多视图，通过 View Tool 与中文 Skill 控制展示状态，通过 Document Bridge 与 dsh-structured-document 解耦集成。",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/irvingzhang0512/dsh-structured-document-view.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./lib/index.js",
+  "types": "./lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "types": "./lib/types/client/index.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json",
+    "./cordis.patch.yml": "./cordis.patch.yml"
+  },
+  "files": [
+    "lib",
+    "src",
+    "skills",
+    "docs",
+    "examples",
+    "tests",
+    "scripts",
+    "cordis.patch.yml",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": []
+    }
+  },
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('lib',{recursive:true,force:true})\"",
+    "inline:css": "node scripts/inline-css.mjs",
+    "build": "npm run clean && npm run inline:css && tsc -p tsconfig.json && node -e \"require('node:fs').rmSync('lib/client',{recursive:true,force:true})\" && tsdown -c tsdown.config.ts",
+    "bundle": "tsdown -c tsdown.config.ts",
+    "typecheck": "npm run inline:css && tsc -p tsconfig.json --noEmit",
+    "test": "npm run inline:css && vitest run",
+    "test:watch": "npm run inline:css && vitest",
+    "prepack": "npm run build"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "structured-document",
+    "mindmap",
+    "view",
+    "agent-tools",
+    "skill"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "mind-elixir": "^5.15.1",
+    "ws": "^8.18.0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.2 <5.0.0",
+    "@deepseek-ai/dsh-skill": ">=0.1.2-rc.1 <0.2.0",
+    "@deepseek-ai/dsh-tools": ">=0.1.2-rc.1 <0.2.0",
+    "dsh-better-sidebar": ">=0.18.0 <0.20.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-skill": {
+      "optional": true
+    },
+    "dsh-better-sidebar": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "4.0.2",
+    "@deepseek-ai/dsh-skill": "^0.1.2-rc.1",
+    "@deepseek-ai/dsh-tools": "0.1.2-rc.1",
+    "@types/node": "^24.0.0",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "@types/ws": "^8.5.10",
+    "dsh-better-sidebar": "^0.18.0",
+    "react": "^18.2.0",
+    "react-dom": "18.2.0",
+    "tsdown": "^0.22.2",
+    "typescript": "^5.8.0",
+    "vitest": "^4.1.8"
+  }
+}

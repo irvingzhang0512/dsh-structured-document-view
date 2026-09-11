@@ -1,0 +1,15 @@
+# 依赖与产物
+node_modules/
+lib/
+.npm-cache/
+*.tsbuildinfo
+
+# 构建期生成（由 scripts/inline-css.mjs 生成，不提交）
+src/client/generated/
+
+# 环境
+*.log
+.DS_Store
+
+# 一次性调试/扫描脚本
+_scan-log.mjs

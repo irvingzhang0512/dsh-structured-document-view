@@ -1,0 +1,131 @@
+{
+  "id": "meeting-2026-09-08",
+  "title": "2026-09-08 产品周会",
+  "profile": "meeting",
+  "revision": 1,
+  "root": {
+    "id": "node_001",
+    "title": "2026-09-08 产品周会",
+    "content": "本周产品例会，同步智能锅具、商城改版与客服体验三个议题。",
+    "role": "topic",
+    "properties": {},
+    "children": [
+      {
+        "id": "node_002",
+        "title": "议题1：智能锅具进度同步",
+        "content": "",
+        "role": "topic",
+        "properties": {},
+        "children": [
+          {
+            "id": "node_003",
+            "title": "热红外模块已完成实验室验证",
+            "content": "实验室环境下识别率 96%，误报率 2%。",
+            "role": "discussion",
+            "properties": {},
+            "children": []
+          },
+          {
+            "id": "node_004",
+            "title": "高温环境下检测率下降",
+            "content": "锅体高温时热红外读数漂移，检测率下降到 88%。",
+            "role": "problem",
+            "properties": {},
+            "children": []
+          },
+          {
+            "id": "node_005",
+            "title": "增加散热测试用例",
+            "content": "补充高温场景测试矩阵，纳入回归。",
+            "role": "conclusion",
+            "properties": {},
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "node_006",
+        "title": "议题2：商城改版方案",
+        "content": "",
+        "role": "topic",
+        "properties": {},
+        "children": [
+          {
+            "id": "node_007",
+            "title": "首页改版上线时间讨论",
+            "content": "设计稿已评审通过，开发需要三周。",
+            "role": "discussion",
+            "properties": {},
+            "children": []
+          },
+          {
+            "id": "node_008",
+            "title": "10月1日前上线",
+            "content": "改版随国庆活动一起发布。",
+            "role": "decision",
+            "properties": {},
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "node_009",
+        "title": "议题3：客服体验问题",
+        "content": "",
+        "role": "topic",
+        "properties": {},
+        "children": [
+          {
+            "id": "node_010",
+            "title": "工单响应慢",
+            "content": "高峰时段人工响应超过 2 小时。",
+            "role": "problem",
+            "properties": {},
+            "children": []
+          },
+          {
+            "id": "node_011",
+            "title": "增加自动回复",
+            "content": "常见问题先接入自动回复，复杂工单转人工。",
+            "role": "decision",
+            "properties": {},
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "node_012",
+        "title": "待办",
+        "content": "会议派生的行动项。",
+        "role": "note",
+        "properties": {},
+        "children": [
+          {
+            "id": "node_013",
+            "title": "更新散热测试用例",
+            "content": "覆盖高温与低温场景。",
+            "role": "action_item",
+            "properties": { "owner": "张三", "status": "进行中", "due_date": "本周五" },
+            "children": []
+          },
+          {
+            "id": "node_014",
+            "title": "准备商城改版验收",
+            "content": "制定验收清单并安排预演。",
+            "role": "action_item",
+            "properties": { "owner": "李四", "status": "未开始", "due_date": "9月20日" },
+            "children": []
+          },
+          {
+            "id": "node_015",
+            "title": "客服自动回复方案评审",
+            "content": "输出方案文档并组织评审。",
+            "role": "action_item",
+            "properties": { "owner": "王五", "status": "进行中", "due_date": "下周一" },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

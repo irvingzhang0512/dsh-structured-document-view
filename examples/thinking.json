@@ -1,0 +1,123 @@
+{
+  "id": "thinking-2026-09",
+  "title": "第二技术路线",
+  "profile": "thinking",
+  "revision": 1,
+  "root": {
+    "id": "node_001",
+    "title": "第二技术路线",
+    "content": "面向智能厨房场景的第二条技术路线整体思路整理。",
+    "role": "topic",
+    "properties": {},
+    "children": [
+      {
+        "id": "node_002",
+        "title": "9月验证",
+        "content": "9 月需要完成的关键验证项。",
+        "role": "topic",
+        "properties": {},
+        "children": [
+          {
+            "id": "node_003",
+            "title": "热红外验证",
+            "content": "利用热红外相机验证高温环境下的目标识别能力，重点看检测率与误报率。",
+            "role": "idea",
+            "properties": {},
+            "children": []
+          },
+          {
+            "id": "node_004",
+            "title": "人员检测",
+            "content": "在厨房多光源场景下验证人员检测的稳定性。",
+            "role": "idea",
+            "properties": {},
+            "children": []
+          },
+          {
+            "id": "node_005",
+            "title": "天气影响",
+            "content": "阴雨天光照不足是否会影响热红外与可见光融合效果？",
+            "role": "problem",
+            "properties": {},
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "node_006",
+        "title": "算法方案",
+        "content": "候选算法方案的对比与选型。",
+        "role": "solution",
+        "properties": {},
+        "children": [
+          {
+            "id": "node_007",
+            "title": "方案A：YOLOv8 蒸馏",
+            "content": "精度高但模型较大，需要做蒸馏与量化。",
+            "role": "idea",
+            "properties": {},
+            "children": []
+          },
+          {
+            "id": "node_008",
+            "title": "方案B：轻量化模型",
+            "content": "MobileNet 系主干，推理快，精度略低。",
+            "role": "idea",
+            "properties": {},
+            "children": []
+          },
+          {
+            "id": "node_009",
+            "title": "是否需要增加锅具分类",
+            "content": "产品侧希望识别锅具类型以调整菜谱，需要评估成本。",
+            "role": "question",
+            "properties": {},
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "node_010",
+        "title": "项目风险",
+        "content": "当前路线的主要风险。",
+        "role": "problem",
+        "properties": {},
+        "children": [
+          {
+            "id": "node_011",
+            "title": "开发板性能风险",
+            "content": "当前开发板算力有限，双路模型同时跑可能超帧率预算。",
+            "role": "problem",
+            "properties": {},
+            "children": []
+          },
+          {
+            "id": "node_012",
+            "title": "数据集不足风险",
+            "content": "厨房场景数据集规模偏小，需要补充采集。",
+            "role": "problem",
+            "properties": {},
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "node_013",
+        "title": "结论",
+        "content": "当前阶段的主要结论。",
+        "role": "conclusion",
+        "properties": {},
+        "children": [
+          {
+            "id": "node_014",
+            "title": "9月先验证热红外与人员检测",
+            "content": "把 9 月验证范围收窄到热红外与人员检测两个方向，结论后再定算法方案。",
+            "role": "conclusion",
+            "properties": {},
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}
