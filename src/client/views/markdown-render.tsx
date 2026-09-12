@@ -78,6 +78,18 @@ export function renderMarkdown(markdown: string): ReactNode {
       continue
     }
 
+    // HTML 注释（如视图生成的元信息头 `<!-- … -->`）：渲染时不可见，
+    // 与标准 Markdown 渲染器行为一致；其余 HTML 仍按文本展示（安全考虑）。
+    if (/^\s*<!--/.test(line)) {
+      index += 1
+      // 起始行已闭合（单行注释）则到此为止；否则继续跳到含 --> 的结束行。
+      if (!line.includes('-->')) {
+        while (index < lines.length && !lines[index]!.includes('-->')) index += 1
+        if (index < lines.length) index += 1
+      }
+      continue
+    }
+
     // 代码围栏
     const fence = /^\s*```/.exec(line)
     if (fence !== null) {
