@@ -70,6 +70,7 @@ export function MindMapView(props: {
   const mindRef = useRef<MindElixirInstance | null>(null)
   const [currentZoom, setCurrentZoom] = useState(1)
   const renderedLayoutRef = useRef<string | undefined>(undefined)
+  const renderedDataRef = useRef<string | undefined>(undefined)
   const lastFocusedRef = useRef<string | null>(null)
 
   // 挂载：创建思维导图实例并注册事件。
@@ -103,7 +104,9 @@ export function MindMapView(props: {
     renderedLayoutRef.current = model.layout
 
     try {
-      mind.init(toMindElixirData(model))
+      const data = toMindElixirData(model)
+      mind.init(data)
+      renderedDataRef.current = JSON.stringify(data.nodeData)
     } catch (error) {
       console.error('[dsh-structured-document-view] mind-elixir init 失败：', error)
       mindRef.current = null
@@ -152,8 +155,17 @@ export function MindMapView(props: {
   useEffect(() => {
     const mind = mindRef.current
     if (mind === null) return
+    const data = toMindElixirData(model)
+    const dataKey = JSON.stringify(data.nodeData)
+    const layoutChanged = renderedLayoutRef.current !== model.layout
+    const dataChanged = renderedDataRef.current !== dataKey
+
+    // 选中节点只改变 ViewState.selectedNodeId，不改变导图数据。此时不要 refresh，
+    // 否则 mind-elixir 会重建画布，导致刚选中的节点和当前视口发生跳动。
+    if (!layoutChanged && !dataChanged) return
+
     // 布局切换走 init* 系列（refresh 不应用 direction）。
-    if (renderedLayoutRef.current !== model.layout) {
+    if (layoutChanged) {
       renderedLayoutRef.current = model.layout
       try {
         if (model.layout === 'logical') mind.initRight()
@@ -164,7 +176,10 @@ export function MindMapView(props: {
       }
     }
     try {
-      mind.refresh(toMindElixirData(model))
+      mind.refresh(data)
+      renderedDataRef.current = dataKey
+      // 布局方向改变后重新定位根节点，避免单侧布局仍沿用双侧布局的偏移。
+      if (layoutChanged) mind.toCenter()
     } catch (error) {
       console.error('[dsh-structured-document-view] 刷新思维导图失败：', error)
     }

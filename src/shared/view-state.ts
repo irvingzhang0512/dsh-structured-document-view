@@ -92,7 +92,7 @@ export const DEFAULT_VIEW_STATE: ViewState = {
   depth: null,
   zoom: 1,
   pan: { x: 0, y: 0 },
-  layout: 'mind',
+  layout: 'logical',
   filter: null,
 }
 
@@ -107,7 +107,7 @@ export function createDefaultViewState(): ViewState {
     depth: null,
     zoom: 1,
     pan: { x: 0, y: 0 },
-    layout: 'mind',
+    layout: 'logical',
     filter: null,
   }
 }

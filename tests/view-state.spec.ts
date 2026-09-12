@@ -24,6 +24,7 @@ describe('view-state reducers', () => {
   it('setView 切换视图且幂等', () => {
     const state = createDefaultViewState()
     expect(state.currentView).toBe('markdown')
+    expect(state.layout).toBe('logical')
     const next = setView(state, 'mindmap')
     expect(next.currentView).toBe('mindmap')
     expect(next).not.toBe(state)
@@ -94,7 +95,7 @@ describe('view-state reducers', () => {
     expect(reset.depth).toBeNull()
     expect(reset.zoom).toBe(1)
     expect(reset.pan).toEqual({ x: 0, y: 0 })
-    expect(reset.layout).toBe('mind')
+    expect(reset.layout).toBe('logical')
     expect(reset.filter).toBeNull()
   })
 })

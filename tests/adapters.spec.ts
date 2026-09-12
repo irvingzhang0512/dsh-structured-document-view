@@ -74,7 +74,9 @@ describe('mindmap adapter', () => {
   it('根节点 ID 与文档一致，direction 随布局', () => {
     const model = toMindMapViewModel(thinkingDoc, createDefaultViewState())
     expect(model.root.id).toBe(thinkingDoc.root.id)
-    expect(model.direction).toBe(2) // mind
+    expect(model.direction).toBe(1) // logical（默认向右展开）
+    const mind = toMindMapViewModel(thinkingDoc, setLayout(createDefaultViewState(), 'mind'))
+    expect(mind.direction).toBe(2)
     const logical = toMindMapViewModel(thinkingDoc, setLayout(createDefaultViewState(), 'logical'))
     expect(logical.direction).toBe(1)
     const down = toMindMapViewModel(thinkingDoc, setLayout(createDefaultViewState(), 'down'))

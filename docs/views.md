@@ -34,6 +34,8 @@
   - 聚焦：`focusedNodeId` 变化 → `findEle(id)` + `scrollIntoView(forceCenter)`；
   - 布局切换：`mind` / `logical` / `down` → `initSide()` / `initRight()` /
     `initDown()`。
+  - 默认采用 `logical` 右侧单向布局，避免窄侧边栏裁掉根节点左侧的分支；
+  - 仅选中状态变化时不刷新整张导图，保留当前缩放和平移位置。
 - **样式**：mind-elixir 的 `MindElixir.css` 构建期内联（D10）随运行时注入；
   插件自身 UI 样式见 `client/plugin-style.ts`。
 - **层级语义**：与视图树一致——`depth` 之外的内容整枝隐藏；展开一个在
