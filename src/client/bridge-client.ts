@@ -96,8 +96,12 @@ export class ViewBridgeClient {
       try {
         const message = parseHostMessage(text)
         if (message.type === 'command') {
-          const ack = this.handlers.onCommand(message.id, message.command)
-          this.send(encodeAck({ id: message.id, ok: ack.ok, code: ack.code, message: ack.message, ...(ack.value !== undefined ? { value: ack.value } : {}) }))
+          const result = this.handlers.onCommand(message.id, message.command)
+          const sendAck = (ack: Awaited<typeof result>): void => {
+            this.send(encodeAck({ id: message.id, ok: ack.ok, code: ack.code, message: ack.message, ...(ack.value !== undefined ? { value: ack.value } : {}) }))
+          }
+          if (result instanceof Promise) void result.then(sendAck).catch(() => sendAck({ ok: false, code: 'INTERNAL_ERROR', message: '客户端执行命令失败。' }))
+          else sendAck(result)
         } else if (message.type === 'hello-ack') {
           this.handlers.onCapabilities?.(message.capabilities)
         } else if (message.type === 'document') {

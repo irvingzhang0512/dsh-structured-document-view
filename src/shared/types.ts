@@ -57,7 +57,10 @@ export type ViewCommand =
   | { name: 'set_view'; view: ViewName }
   | { name: 'expand_node'; node?: string }
   | { name: 'collapse_node'; node?: string }
-  | { name: 'focus_node'; node?: string }
+  | { name: 'focus_node'; node?: string; mode?: 'visible' | 'center' }
+  | { name: 'set_zoom'; zoom?: number; factor?: number }
+  | { name: 'fit_view' }
+  | { name: 'reset_viewport' }
   | { name: 'set_depth'; depth: number | null }
   | { name: 'set_layout'; layout: MindMapLayout }
   | { name: 'set_filter'; filter: ViewFilter | null }
@@ -71,6 +74,9 @@ export const VIEW_COMMAND_NAMES: readonly string[] = [
   'expand_node',
   'collapse_node',
   'focus_node',
+  'set_zoom',
+  'fit_view',
+  'reset_viewport',
   'set_depth',
   'set_layout',
   'set_filter',
@@ -125,7 +131,7 @@ export type HostToClientMessage =
 /** 客户端桥处理器（含宿主文档推送）。 */
 export interface BridgeClientHandlerSet {
   /** 处理一条命令并返回 ack 载荷。 */
-  onCommand(id: string, command: ViewCommand): { ok: boolean; code: string; message: string; value?: Record<string, unknown> }
+  onCommand(id: string, command: ViewCommand): Promise<{ ok: boolean; code: string; message: string; value?: Record<string, unknown> }> | { ok: boolean; code: string; message: string; value?: Record<string, unknown> }
   /** 宿主能力声明（hello 应答）。 */
   onCapabilities?(capabilities: HostCapabilities): void
   /** 宿主文档快照推送。 */
@@ -161,12 +167,15 @@ export type ViewCode =
   | 'NO_SESSION'
   | 'NO_SELECTED_NODE'
   | 'NODE_NOT_FOUND'
+  | 'NODE_HIDDEN'
   | 'MULTIPLE_NODES_FOUND'
   | 'INVALID_VIEW'
   | 'INVALID_LAYOUT'
   | 'INVALID_DEPTH'
   | 'INVALID_FILTER'
+  | 'INVALID_ZOOM'
   | 'DOCUMENT_UNAVAILABLE'
+  | 'VIEW_NOT_READY'
   | 'UNKNOWN_COMMAND'
   | 'INTERNAL_ERROR'
 
@@ -180,12 +189,15 @@ export const KNOWN_VIEW_CODES: Record<ViewCode, true> = {
   NO_SESSION: true,
   NO_SELECTED_NODE: true,
   NODE_NOT_FOUND: true,
+  NODE_HIDDEN: true,
   MULTIPLE_NODES_FOUND: true,
   INVALID_VIEW: true,
   INVALID_LAYOUT: true,
   INVALID_DEPTH: true,
   INVALID_FILTER: true,
+  INVALID_ZOOM: true,
   DOCUMENT_UNAVAILABLE: true,
+  VIEW_NOT_READY: true,
   UNKNOWN_COMMAND: true,
   INTERNAL_ERROR: true,
 }

@@ -2,7 +2,7 @@
 
 # dsh-structured-document-view
 
-DSH（DeepSeek Harness）插件：基于 `dsh-better-sidebar` 在侧边栏展示**结构化文档**的多视图页（Markdown / 思维导图 / 表格），配套 **10 个 View Tool** 与随包**中文 Skill**，让 Agent 与用户用自然语言控制「视图状态」。
+DSH（DeepSeek Harness）插件：基于 `dsh-better-sidebar` 在侧边栏展示**结构化文档**的多视图页（Markdown / 思维导图 / 表格），配套 **15 个 View Tool** 与随包**中文 Skill**，让 Agent 与用户用自然语言控制「视图状态」。
 
 > 视图只负责「怎么看」，绝不改文档。所有工具与技能意图只改变展示方式（视图类型 / 层级 / 布局 / 筛选 / 展开收起 / 聚焦 / 缩放平移）；文档内容由数据源侧维护（安装 `dsh-structured-document` 后为真实文档，否则为内置 Mock）。
 
@@ -13,7 +13,7 @@ DSH（DeepSeek Harness）插件：基于 `dsh-better-sidebar` 在侧边栏展示
   - `mindmap`：基于 mind-elixir v5（只读）——展开/收起、点击选中、滚轮缩放、拖动画布平移、聚焦居中，支持 `mind`（两侧）/ `logical`（右侧，即从左到右）/ `down`（上下）三种布局；
   - `table`：按角色分组 + 属性列（尊重层级与筛选）。
 - **视图状态与文档分离**：`currentView / selected / focused / expanded / collapsed / depth / zoom / pan / layout / filter` 全部是纯 reducer 的不可变状态，只影响「怎么看」，绝不修改文档。
-- **10 个 View Tool**：`set_view` / `get_view_state` / `expand_node` / `collapse_node` / `focus_node` / `set_depth` / `set_layout` / `set_filter` / `reset_view` / `open_view_tab`。每个工具职责单一，统一结果信封 `{ ok, code, message, delivered, queued, ... }`。
+- **15 个 View Tool**：覆盖视图切换、节点展开/定位、布局/层级/筛选、缩放/适配、指令帮助和页签打开。每个工具职责单一，统一结果信封 `{ ok, code, message, delivered, queued, ... }`。
 - **中文 Skill**：安装插件即自动注册 `structured-document-view` 技能，支持「切成思维导图」「只显示两层」「展开第二个议题」「聚焦当前节点」「改成从左到右布局」「恢复默认视图」等自然语言意图。
 - **页签自动打开**：会话首次激活时自动打开「结构化文档」页签；`open_view_tab` 可随时打开/激活该页签。
 - **Node ID 一致**：思维导图节点 ID 就是文档节点 ID，点击/聚焦/展开与文档节点一一对应。
@@ -50,6 +50,10 @@ dsh plugin --profile web add dsh-structured-document@latest
 | `expand_node` | `node?` | 展开节点（显式展开可突破层级限制） |
 | `collapse_node` | `node?` | 收起节点子树 |
 | `focus_node` | `node?` | 聚焦节点（居中 + 选中） |
+| `set_zoom` | `zoom?` / `factor?` | 指定比例或相对缩放 |
+| `fit_view` | — | 显示当前可见全图 |
+| `reset_viewport` | — | 重置缩放和画布位置 |
+| `get_view_help` | `level?` | 获取中文指令示例 |
 | `set_depth` | `depth`: `0`–`20` | 只显示前 N 层（`0` / `null` = 不限；根为第 1 层） |
 | `set_layout` | `layout`: `mind` \| `logical` \| `down` | 思维导图布局（两侧 / 右侧 / 上下） |
 | `set_filter` | `filter?` | 按角色/属性筛选；省略或传 `{}` 清除 |

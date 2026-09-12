@@ -1,6 +1,6 @@
 # 视图工具（View Tools）
 
-9 个工具，职责单一（**没有万能 command Tool**）。统一结果信封：
+15 个工具，职责单一（**没有万能 command Tool**）。统一结果信封：
 `{ ok, code, message, delivered, queued, ...字段 }` + 独立文本投影。
 
 **核心原则**：所有工具只修改 **View State（视图状态）**，绝不直接修改
@@ -15,7 +15,11 @@
 | `get_view_state` | — | 当前视图状态 + 文档大纲（Node ID） | 现在是什么视图；列出大纲 |
 | `expand_node` | `node?` | 展开节点 | 把这个节点展开；展开第二个议题 |
 | `collapse_node` | `node?` | 收起节点 | 把其他部分收起来 |
-| `focus_node` | `node?` | 聚焦节点（居中 + 选中） | 聚焦当前节点 |
+| `focus_node` | `node?, mode?` | 定位节点；visible=移入可视区，center=居中 | 找到当前节点；移到中间 |
+| `set_zoom` | `zoom?` 或 `factor?` | 设置或相对调整缩放 | 放大一点；缩放到 80% |
+| `fit_view` | — | 适配当前可见内容 | 显示全图 |
+| `reset_viewport` | — | 恢复 100% 并居中根节点 | 重置视口 |
+| `get_view_help` | `level?` | 获取简单或组合中文说法 | 我可以怎么说 |
 | `set_depth` | `depth: 0-20` | 只显示前 N 层（0 = 不限） | 只显示两层 |
 | `set_layout` | `layout: mind\|logical\|down` | 思维导图布局 | 改成从左到右布局 |
 | `set_filter` | `filter?` | 按角色/属性筛选；空对象 `{}` 或省略 = 清除 | 只看待办事项；清除筛选 |

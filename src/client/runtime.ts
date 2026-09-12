@@ -47,6 +47,14 @@ export interface RuntimeBridgeSend {
   (message: ClientToHostMessage): void
 }
 
+/** 由已挂载的思维导图提供；命令完成代表画布已经实际更新。 */
+export interface MindMapViewportController {
+  focusNode(nodeId: NodeId, mode: 'visible' | 'center'): Promise<CommandAckPayload>
+  setZoom(command: { zoom?: number; factor?: number }): Promise<CommandAckPayload>
+  fitView(): Promise<CommandAckPayload>
+  resetViewport(): Promise<CommandAckPayload>
+}
+
 /** 状态推送去抖间隔（ms），避免缩放/平移高频事件刷爆桥。 */
 const PUSH_DEBOUNCE_MS = 80
 
@@ -66,6 +74,8 @@ export class ViewRuntime {
   private disposed = false
   private readonly unsubscribers: Array<() => void> = []
   private readonly runtimeListeners = new Set<() => void>()
+  private viewportController: MindMapViewportController | null = null
+  private viewportWaiters: Array<(controller: MindMapViewportController | null) => void> = []
 
   constructor(sessionId: string, pushTarget: RuntimePushTarget, sendBridgeMessage?: RuntimeBridgeSend, activeDocumentId?: string, openTab?: () => void) {
     this.sessionId = sessionId
@@ -185,6 +195,10 @@ export class ViewRuntime {
         return this.applyNodeToggle(command, 'collapse')
       case 'focus_node':
         return this.applyFocus(command.node)
+      case 'set_zoom':
+      case 'fit_view':
+      case 'reset_viewport':
+        return { ok: false, code: 'VIEW_NOT_READY', message: '思维导图画布尚未准备好。' }
       case 'set_depth':
         return this.applySetDepth(command.depth)
       case 'set_layout':
@@ -204,6 +218,76 @@ export class ViewRuntime {
       default:
         return { ok: false, code: 'UNKNOWN_COMMAND', message: `未知命令：${(command as { name?: string }).name ?? '?'}` }
     }
+  }
+
+  /** 桥和界面使用的异步入口：视口类命令等待实际画布操作完成。 */
+  async applyCommandAsync(command: ViewCommand): Promise<CommandAckPayload> {
+    if (command.name === 'focus_node') {
+      const prepared = this.applyFocus(command.node)
+      if (!prepared.ok) return prepared
+      const nodeId = String(prepared.value?.nodeId ?? '')
+      const controller = await this.waitForViewport()
+      if (controller === null || this.store.getState().currentView !== 'mindmap') {
+        return { ok: false, code: 'VIEW_NOT_READY', message: '请先打开并切换到思维导图视图。', value: prepared.value }
+      }
+      const located = await controller.focusNode(nodeId, command.mode ?? 'center')
+      if (!located.ok && located.code === 'NODE_HIDDEN') {
+        return { ...located, message: this.hiddenNodeMessage(nodeId), value: prepared.value }
+      }
+      return { ...located, value: { ...prepared.value, ...located.value } }
+    }
+    const controller = await this.waitForViewport()
+    if (command.name === 'set_zoom' || command.name === 'fit_view' || command.name === 'reset_viewport') {
+      if (controller === null || this.store.getState().currentView !== 'mindmap') {
+        return { ok: false, code: 'VIEW_NOT_READY', message: '请先打开并切换到思维导图视图。' }
+      }
+      if (command.name === 'set_zoom') return controller.setZoom(command)
+      if (command.name === 'fit_view') return controller.fitView()
+      return controller.resetViewport()
+    }
+    return this.applyCommand(command)
+  }
+
+  registerViewportController(controller: MindMapViewportController): () => void {
+    this.viewportController = controller
+    for (const resolve of this.viewportWaiters.splice(0)) resolve(controller)
+    return () => {
+      if (this.viewportController === controller) this.viewportController = null
+    }
+  }
+
+  private waitForViewport(timeoutMs = 1000): Promise<MindMapViewportController | null> {
+    if (this.viewportController !== null) return Promise.resolve(this.viewportController)
+    if (this.store.getState().currentView !== 'mindmap') return Promise.resolve(null)
+    return new Promise(resolve => {
+      const done = (controller: MindMapViewportController | null): void => {
+        clearTimeout(timer)
+        const index = this.viewportWaiters.indexOf(done)
+        if (index >= 0) this.viewportWaiters.splice(index, 1)
+        resolve(controller)
+      }
+      const timer = setTimeout(() => done(null), timeoutMs)
+      this.viewportWaiters.push(done)
+    })
+  }
+
+  private hiddenNodeMessage(nodeId: NodeId): string {
+    const state = this.store.getState()
+    const document = this.bridge.getDocument()
+    const path: DocNode[] = []
+    const find = (node: DocNode): boolean => {
+      path.push(node)
+      if (node.id === nodeId) return true
+      for (const child of node.children) if (find(child)) return true
+      path.pop()
+      return false
+    }
+    if (document !== null) find(document.root)
+    const collapsed = path.slice(0, -1).find(node => state.collapsedNodeIds.includes(node.id))
+    if (collapsed !== undefined) return `目标节点被已收起的上级节点「${nodeTitle(collapsed)}」隐藏，请先展开该节点。`
+    if (state.filter !== null) return '目标节点不在当前筛选结果中，请先清除或调整筛选。'
+    if (state.depth !== null) return `目标节点超出当前 ${state.depth} 层显示限制，请增加层级或展开其上级节点。`
+    return '目标节点当前未渲染，可能被收起、层级限制或筛选隐藏。'
   }
 
   private applySetView(view: 'markdown' | 'mindmap' | 'table'): CommandAckPayload {
@@ -418,6 +502,8 @@ export class ViewRuntime {
   dispose(): void {
     if (this.disposed) return
     this.disposed = true
+    for (const resolve of this.viewportWaiters.splice(0)) resolve(null)
+    this.viewportController = null
     if (this.pushTimer !== undefined) {
       globalThis.clearTimeout(this.pushTimer)
       this.pushTimer = undefined

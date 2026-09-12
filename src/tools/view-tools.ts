@@ -18,6 +18,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { ParameterPropertySpec, ToolRunContext } from '@deepseek-ai/dsh-tools'
 import type { DispatchOutcome, ViewCommand, ViewCode, ViewStateWire } from '../shared/types.ts'
 import { MIND_MAP_LAYOUTS, VIEW_NAMES } from '../shared/view-state.ts'
+import { guideEntries, type GuideLevel } from '../shared/command-guide.ts'
 import type { ViewMirrorStore } from '../host/mirror-store.ts'
 import type { ViewBridgeServer } from '../host/bridge-server.ts'
 
@@ -28,6 +29,10 @@ export const VIEW_TOOL_NAMES = [
   'expand_node',
   'collapse_node',
   'focus_node',
+  'set_zoom',
+  'fit_view',
+  'reset_viewport',
+  'get_view_help',
   'set_depth',
   'set_layout',
   'set_filter',
@@ -352,7 +357,10 @@ export function registerViewTools(ctx: { tools: { register(tool: unknown): () =>
     disposers.push(ctx.tools.register(defineTool({
       name,
       description: labels[name].description,
-      parameters: { node: nodeParameter },
+      parameters: {
+        node: nodeParameter,
+        ...(name === 'focus_node' ? { mode: { type: 'string', enum: ['visible', 'center'], description: 'visible=仅在看不全时移动；center=移到中央（默认）。' } as ParameterPropertySpec } : {}),
+      },
       output: {
         schema: outputWith({
           ...deliveryEnvelope,
@@ -366,7 +374,12 @@ export function registerViewTools(ctx: { tools: { register(tool: unknown): () =>
         const session = requireSession(exec)
         if ('error' in session) return session.error as never
         const node = typeof (args as { node?: unknown }).node === 'string' ? (args as { node: string }).node : undefined
-        const command: ViewCommand = node === undefined ? { name } : { name, node }
+        const mode = name === 'focus_node' && ((args as { mode?: unknown }).mode === 'visible' || (args as { mode?: unknown }).mode === 'center')
+          ? (args as { mode: 'visible' | 'center' }).mode
+          : undefined
+        const command: ViewCommand = node === undefined
+          ? { name, ...(mode !== undefined ? { mode } : {}) }
+          : { name, node, ...(mode !== undefined ? { mode } : {}) }
         const outcome = await deps.bridge.dispatch(session.sessionId, command, ackTimeoutMs)
         const ackValue = (outcome.ack?.value ?? {}) as Record<string, unknown>
         return outcomeResult(
@@ -385,6 +398,66 @@ export function registerViewTools(ctx: { tools: { register(tool: unknown): () =>
   nodeMutationTool('expand_node')
   nodeMutationTool('collapse_node')
   nodeMutationTool('focus_node')
+
+  // ── 思维导图视口工具 ─────────────────────────────────────────────────
+  disposers.push(ctx.tools.register(defineTool({
+    name: 'set_zoom',
+    description: '调整思维导图缩放。zoom 指定 0.3-3 的比例；factor 按当前比例缩放，二者只能提供一个。适合「放大一点」「缩小一点」「缩放到 80%」。',
+    parameters: {
+      zoom: { type: 'number', description: '目标缩放比例，0.3-3（如 0.8 表示 80%）。' },
+      factor: { type: 'number', description: '相对缩放倍数（如 1.25 放大，0.8 缩小）。' },
+    },
+    output: { schema: outputWith({ ...deliveryEnvelope, zoom: { type: 'number', required: true, description: '实际缩放比例。' } }), render: (_args, value) => [{ type: 'text', text: textOf(value as never) }] },
+    execute: async (args, exec) => {
+      const session = requireSession(exec)
+      if ('error' in session) return session.error as never
+      const zoom = (args as { zoom?: unknown }).zoom
+      const factor = (args as { factor?: unknown }).factor
+      if ((typeof zoom === 'number') === (typeof factor === 'number') || (typeof zoom === 'number' && (zoom < 0.3 || zoom > 3)) || (typeof factor === 'number' && factor <= 0)) {
+        return { ...failure('INVALID_ZOOM', 'zoom 与 factor 必须且只能提供一个；zoom 范围为 0.3-3，factor 必须大于 0。'), delivered: false, queued: false, zoom: 0 }
+      }
+      const command: ViewCommand = typeof zoom === 'number' ? { name: 'set_zoom', zoom } : { name: 'set_zoom', factor: factor as number }
+      const outcome = await deps.bridge.dispatch(session.sessionId, command, ackTimeoutMs)
+      const actual = Number(outcome.ack?.value?.zoom ?? zoom ?? 0)
+      return outcomeResult(outcome, '已调整缩放。', '缩放操作已排队。', { zoom: actual })
+    },
+  })))
+
+  const viewportTool = (name: 'fit_view' | 'reset_viewport', description: string, ok: string): void => {
+    disposers.push(ctx.tools.register(defineTool({
+      name,
+      description,
+      parameters: {},
+      output: { schema: outputWith({ ...deliveryEnvelope, zoom: { type: 'number', description: '操作后的缩放比例。' } }), render: (_args, value) => [{ type: 'text', text: textOf(value as never) }] },
+      execute: async (_args, exec) => {
+        const session = requireSession(exec)
+        if ('error' in session) return session.error as never
+        const outcome = await deps.bridge.dispatch(session.sessionId, { name }, ackTimeoutMs)
+        return outcomeResult(outcome, ok, `${ok}操作已排队。`, { zoom: Number(outcome.ack?.value?.zoom ?? 0) })
+      },
+    })))
+  }
+  viewportTool('fit_view', '让当前已经显示的思维导图内容适配画布，不改变展开或筛选。适合「显示全图」。', '已显示全图。')
+  viewportTool('reset_viewport', '恢复 100% 缩放并居中根节点，保留布局、展开和筛选。适合「重置视口」。', '已重置视口。')
+
+  disposers.push(ctx.tools.register(defineTool({
+    name: 'get_view_help',
+    description: '获取用户可以直接说出的中文视图指令。level=simple 返回常用短句，combined 返回组合指令。适合「我可以怎么说」「有哪些语音指令」。',
+    parameters: { level: { type: 'string', enum: ['simple', 'combined'], description: '帮助级别，默认 simple。' } },
+    output: {
+      schema: outputWith({ level: { type: 'string', required: true, description: '帮助级别。' }, entries: { type: 'array', required: true, items: { type: 'object', additionalProperties: true }, description: '自然语言指令。' } }),
+      render: (_args, value) => {
+        const result = value as unknown as BaseResult & { entries?: Array<{ phrase?: string; description?: string }> }
+        const lines = [`[${result.code}] ${result.message}`]
+        for (const entry of result.entries ?? []) lines.push(`- ${entry.phrase ?? ''}：${entry.description ?? ''}`)
+        return [{ type: 'text', text: lines.join('\n') }]
+      },
+    },
+    execute: async (args) => {
+      const level: GuideLevel = (args as { level?: unknown }).level === 'combined' ? 'combined' : 'simple'
+      return { ...success('OK', level === 'simple' ? '这些常用指令可以直接说。' : '这些组合指令可以直接说。'), level, entries: guideEntries(level).map(({ id, phrase, description, needsSelection, needsTarget }) => ({ id, phrase, description, needsSelection: needsSelection === true, needsTarget: needsTarget === true })) }
+    },
+  })))
 
   // ── 6. set_depth ──────────────────────────────────────────────────────
   disposers.push(ctx.tools.register(defineTool({

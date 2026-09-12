@@ -2,7 +2,7 @@
  * Skill 契约测试：打包的 SKILL.md 与 View Tools "真正对应"。
  *
  * 1. frontmatter 规范（name 必须 kebab-case、description 非空）；
- * 2. SKILL.md 覆盖全部 9 个工具名（不漏、不拼错）；
+ * 2. SKILL.md 覆盖全部视图工具名（不漏、不拼错）；
  * 3. 端到端："Skill 里的中文意图 → 工具调用 → 桥派发 → 客户端运行时执行
  *    → 镜像更新"全链路真实跑通（工具是真实注册的，客户端是真实 ViewRuntime）。
  */
@@ -50,7 +50,7 @@ describe('SKILL.md 规范', () => {
       expect(raw).toContain(name)
     }
     // 工具表里出现的反引号工具名必须是合法工具（防拼写漂移）
-    const mentioned = new Set([...raw.matchAll(/`(set_view|get_view_state|expand_node|collapse_node|focus_node|set_depth|set_layout|set_filter|reset_view|open_view_tab)`/g)].map(m => m[1]!))
+    const mentioned = new Set([...raw.matchAll(/`(set_view|get_view_state|expand_node|collapse_node|focus_node|set_zoom|fit_view|reset_viewport|get_view_help|set_depth|set_layout|set_filter|reset_view|open_view_tab)`/g)].map(m => m[1]!))
     for (const name of mentioned) {
       expect(VIEW_TOOL_NAMES).toContain(name)
     }

@@ -19,6 +19,11 @@
 | 展开第二个议题 | `get_view_state` → `expand_node(node=<Node ID>)` |
 | 把其他部分收起来 | `get_view_state` → 逐个 `collapse_node(node=<兄弟 Node ID>)` |
 | 聚焦当前节点 | `focus_node()`（缺省 = 当前选中节点） |
+| 找到当前节点 | `focus_node(mode="visible")` |
+| 显示全图 | `fit_view()` |
+| 放大一点 | `set_zoom(factor=1.25)` |
+| 重置视口 | `reset_viewport()` |
+| 我可以怎么说 | `get_view_help(level="simple")` |
 | 改成从左到右布局 | `set_layout(layout="logical")` |
 | 恢复默认视图 | `reset_view()` |
 | 只看待办事项 | `set_filter(filter={role:"action_item"})` / `set_filter(filter={role:"task"})` |

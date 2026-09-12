@@ -4,7 +4,7 @@
  * 职责：
  * - 挂载 View Bridge WebSocket `/structured-document-view/ws?sessionId=…`：
  *   浏览器客户端按活动会话接入，接收 Tool 命令、推送视图状态镜像；
- * - 注册 9 个视图工具（set_view / get_view_state / expand_node /
+ * - 注册 15 个视图工具（set_view / get_view_state / expand_node /
  *   collapse_node / focus_node / set_depth / set_layout / set_filter /
  *   reset_view）；
  * - 自注册打包的中文 Skill（skills/structured-document-view/SKILL.md）。

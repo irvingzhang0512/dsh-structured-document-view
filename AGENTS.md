@@ -6,7 +6,7 @@
 ## 项目概览
 
 DSH（DeepSeek Harness）插件：基于 dsh-better-sidebar 展示**结构化文档**的
-多视图侧边栏页（Markdown / 思维导图 / 表格），配套 9 个 **View Tool** 与
+多视图侧边栏页（Markdown / 思维导图 / 表格），配套 15 个 **View Tool** 与
 可导入的**中文 Skill**，让 Agent 与用户用自然语言控制"视图状态"。
 
 - 视图状态与文档严格分离：视图状态是纯 reducer 的不可变状态，只影响"怎么看"，绝不修改文档；
@@ -26,7 +26,7 @@ src/client/   浏览器端：视图（markdown/mindmap/table）、适配器、�
 src/document/ 文档侧：Document Provider、Document Bridge、Mock Provider
 src/host/     宿主侧：bridge-server、document-integrator、socket、trust-fence、skill-registration
 src/shared/   共享类型与纯函数：IR、view-state、view-tree、wire 协议
-src/tools/    View Tool 实现（9 个，见 docs/tools.md）
+src/tools/    View Tool 实现（15 个，见 docs/tools.md）
 skills/       中文 Skill（SKILL.md）
 docs/         架构与设计文档（architecture / views / tools / skill / document-provider / sidebar-integration / usage）
 tests/        Vitest 测试

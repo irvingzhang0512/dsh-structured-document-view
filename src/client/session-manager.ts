@@ -88,7 +88,9 @@ export class ViewSessionManager {
       client = new ViewBridgeClient(sessionId, {
         onCommand: (id, command) => {
           void id
-          return runtime.applyCommand(command)
+          return command.name === 'focus_node' || command.name === 'set_zoom' || command.name === 'fit_view' || command.name === 'reset_viewport'
+            ? runtime.applyCommandAsync(command)
+            : runtime.applyCommand(command)
         },
         onCapabilities: (capabilities) => runtime.applyCapabilities(capabilities),
         onDocument: (message) => runtime.applyHostDocument(message),

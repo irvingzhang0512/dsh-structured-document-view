@@ -71,6 +71,24 @@ export const PLUGIN_STYLE = `
   text-overflow: ellipsis;
 }
 .sdv-status-meta { opacity: .7; margin-left: 6px; }
+.sdv-guide { border-bottom: 1px solid rgba(128,128,128,.18); background: var(--sidebar-bg, #fff); }
+.sdv-guide-quick { min-height: 32px; display: flex; align-items: center; gap: 5px; padding: 4px 8px; overflow-x: auto; }
+.sdv-guide-label { color: var(--sidebar-fg-muted, #777); white-space: nowrap; font-size: 11px; }
+.sdv-guide-chip, .sdv-guide-more { border: 0; border-radius: 10px; padding: 3px 7px; font-size: 11px; color: inherit; background: rgba(79,110,247,.10); cursor: pointer; white-space: nowrap; }
+.sdv-guide-chip:hover, .sdv-guide-more:hover { background: rgba(79,110,247,.2); }
+.sdv-guide-chip:disabled { opacity: .45; cursor: not-allowed; }
+.sdv-guide-more { margin-left: auto; }
+.sdv-guide-panel { max-height: 40vh; overflow: auto; padding: 8px; border-top: 1px solid rgba(128,128,128,.14); }
+.sdv-guide-context, .sdv-guide-status { color: var(--sidebar-fg-muted, #777); font-size: 11px; margin-bottom: 6px; }
+.sdv-guide-controls { display: flex; gap: 6px; margin-bottom: 8px; }
+.sdv-guide-search { min-width: 80px; flex: 1; border: 1px solid rgba(128,128,128,.35); border-radius: 4px; padding: 3px 6px; color: inherit; background: transparent; }
+.sdv-guide-panel h4 { margin: 8px 0 4px; font-size: 12px; }
+.sdv-guide-entry { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid rgba(128,128,128,.10); }
+.sdv-guide-copy-text { min-width: 0; flex: 1; user-select: text; }
+.sdv-guide-copy-text span, .sdv-guide-copy-text small { display: block; }
+.sdv-guide-copy-text small { color: var(--sidebar-fg-muted, #777); margin-top: 2px; }
+.sdv-guide-actions { display: flex; gap: 3px; }
+.sdv-guide-actions .sdv-btn:disabled { opacity: .45; cursor: not-allowed; }
 .sdv-content {
   flex: 1;
   min-height: 0;

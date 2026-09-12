@@ -104,10 +104,22 @@ export function parseCommand(raw: unknown): ViewCommand {
       return { name, view: raw.view }
     }
     case 'expand_node':
-    case 'collapse_node':
-    case 'focus_node': {
+    case 'collapse_node': {
       const node = optionalString(raw, 'node')
       return { name, ...(node !== undefined && node !== '' ? { node } : {}) }
+    }
+    case 'focus_node': {
+      const node = optionalString(raw, 'node')
+      const mode = raw.mode
+      if (mode !== undefined && mode !== 'visible' && mode !== 'center') throw new WireError('invalid focus mode')
+      return { name, ...(node !== undefined && node !== '' ? { node } : {}), ...(mode !== undefined ? { mode } : {}) }
+    }
+    case 'set_zoom': {
+      const zoom = optionalNumber(raw, 'zoom')
+      const factor = optionalNumber(raw, 'factor')
+      if ((zoom === undefined) === (factor === undefined)) throw new WireError('set_zoom requires exactly one of zoom/factor')
+      if ((zoom !== undefined && (zoom < 0.3 || zoom > 3)) || (factor !== undefined && factor <= 0)) throw new WireError('invalid zoom')
+      return { name, ...(zoom !== undefined ? { zoom } : { factor: factor! }) }
     }
     case 'set_depth': {
       const depth = raw.depth
@@ -125,6 +137,8 @@ export function parseCommand(raw: unknown): ViewCommand {
     case 'set_filter':
       return { name, filter: parseFilter(raw.filter) }
     case 'reset_view':
+    case 'fit_view':
+    case 'reset_viewport':
     case 'open_tab':
     case 'sync_state':
       return { name }

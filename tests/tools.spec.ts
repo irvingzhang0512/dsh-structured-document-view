@@ -66,7 +66,7 @@ function makeWire(): ViewStateWire {
 }
 
 describe('registerViewTools', () => {
-  it('注册全部 10 个工具，且无多余', () => {
+  it('注册全部视图工具，且无多余', () => {
     const ctx = makeCtx()
     const { deps } = makeBridge()
     registerViewTools(ctx as never, deps as never)
@@ -216,6 +216,28 @@ describe('registerViewTools', () => {
     expect(dispatch).toHaveBeenLastCalledWith('s1', { name: 'set_layout', layout: 'logical' }, undefined)
     // 非法布局被 schema 拒绝
     await expect(runTool(layoutTool, { layout: 'fish' })).rejects.toThrow()
+  })
+
+  it('视口工具与帮助工具：参数映射和共享中文指令', async () => {
+    const ctx = makeCtx()
+    const { deps, dispatch } = makeBridge()
+    registerViewTools(ctx as never, deps as never)
+
+    const zoomTool = ctx.registered.find(t => t.name === 'set_zoom')!
+    expect(((await runTool(zoomTool, { factor: 1.25 })) as Record<string, unknown>).ok).toBe(true)
+    expect(dispatch).toHaveBeenLastCalledWith('s1', { name: 'set_zoom', factor: 1.25 }, undefined)
+    expect(((await runTool(zoomTool, { zoom: 1, factor: 2 })) as Record<string, unknown>).code).toBe('INVALID_ZOOM')
+
+    const fitTool = ctx.registered.find(t => t.name === 'fit_view')!
+    await runTool(fitTool, {})
+    expect(dispatch).toHaveBeenLastCalledWith('s1', { name: 'fit_view' }, undefined)
+
+    const helpTool = ctx.registered.find(t => t.name === 'get_view_help')!
+    const simple = (await runTool(helpTool, {})) as Record<string, unknown>
+    expect(simple.level).toBe('simple')
+    expect(JSON.stringify(simple.entries)).toContain('找到当前节点')
+    const combined = (await runTool(helpTool, { level: 'combined' })) as Record<string, unknown>
+    expect(JSON.stringify(combined.entries)).toContain('切成右侧思维导图')
   })
 
   it('set_filter：设置 / 清除（省略或空对象）', async () => {

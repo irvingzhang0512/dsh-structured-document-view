@@ -15,6 +15,7 @@ import { toMindMapViewModel } from '../adapters/mindmap.ts'
 import { MarkdownView } from './markdown-view.tsx'
 import { MindMapView } from './mindmap-view.tsx'
 import { TableView } from './table-view.tsx'
+import { CommandGuide } from './command-guide.tsx'
 
 /** 每个视图的订阅集合（无变化即无重渲染）。 */
 function subscribeToRuntime(runtime: ViewRuntime, callback: () => void): () => void {
@@ -184,6 +185,8 @@ function ViewPanel({ runtime }: { runtime: ViewRuntime }): React.ReactElement {
         </span>
       </div>
 
+      <CommandGuide runtime={runtime} state={state} document={document} />
+
       <div className="sdv-content">
         <ContentView runtime={runtime} state={state} />
       </div>
@@ -205,6 +208,8 @@ function ContentView({ runtime, state }: { runtime: ViewRuntime; state: ViewStat
           onSelectNode={(nodeId) => runtime.handleUserSelectNode(nodeId)}
           onToggleNode={(nodeId) => runtime.handleUserToggleNode(nodeId)}
           onViewStateChange={(patch) => runtime.applyViewStateChange(patch)}
+          onViewportReady={(controller) => runtime.registerViewportController(controller)}
+          onCommand={(command) => runtime.applyCommandAsync(command)}
         />
       )
     }
