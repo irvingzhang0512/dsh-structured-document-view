@@ -47,6 +47,7 @@ describe('parseCommand', () => {
     expect(parseCommand({ name: 'set_filter', filter: { role: 'task' } })).toEqual({ name: 'set_filter', filter: { role: 'task' } })
     expect(parseCommand({ name: 'set_filter', filter: null })).toEqual({ name: 'set_filter', filter: null })
     expect(parseCommand({ name: 'reset_view' })).toEqual({ name: 'reset_view' })
+    expect(parseCommand({ name: 'open_tab' })).toEqual({ name: 'open_tab' })
     expect(parseCommand({ name: 'sync_state' })).toEqual({ name: 'sync_state' })
   })
 

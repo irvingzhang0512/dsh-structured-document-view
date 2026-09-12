@@ -32,6 +32,7 @@ export const VIEW_TOOL_NAMES = [
   'set_layout',
   'set_filter',
   'reset_view',
+  'open_view_tab',
 ] as const
 
 export type ViewToolName = (typeof VIEW_TOOL_NAMES)[number]
@@ -507,6 +508,27 @@ export function registerViewTools(ctx: { tools: { register(tool: unknown): () =>
       if ('error' in session) return session.error as never
       const outcome = await deps.bridge.dispatch(session.sessionId, { name: 'reset_view' }, ackTimeoutMs)
       return outcomeResult(outcome, '已恢复默认视图。', '视图客户端未连接，重置操作已排队。', { currentView: 'markdown' })
+    },
+  })))
+
+  // ── 10. open_view_tab ─────────────────────────────────────────────────
+  disposers.push(ctx.tools.register(defineTool({
+    name: 'open_view_tab',
+    description:
+      '打开侧边栏的「结构化文档」视图页签（已打开则激活它），适合「打开结构化文档」「打开视图页」「打开思维导图页签」。',
+    parameters: {},
+    output: {
+      schema: outputWith({
+        ...deliveryEnvelope,
+      }),
+      render: (_args, value) => [{ type: 'text', text: textOf(value as never) }],
+    },
+    execute: async (_args, exec) => {
+      exec.signal.throwIfAborted()
+      const session = requireSession(exec)
+      if ('error' in session) return session.error as never
+      const outcome = await deps.bridge.dispatch(session.sessionId, { name: 'open_tab' }, ackTimeoutMs)
+      return outcomeResult(outcome, '已打开「结构化文档」视图页签。', '视图客户端未连接，打开操作已排队。', {})
     },
   })))
 

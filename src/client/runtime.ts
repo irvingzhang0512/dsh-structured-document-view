@@ -59,16 +59,19 @@ export class ViewRuntime {
   private readonly sessionId: string
   private readonly pushTarget: RuntimePushTarget
   private readonly sendBridgeMessage: RuntimeBridgeSend | undefined
+  /** 打开「结构化文档」侧边栏页签的回调（由客户端 apply 注入）。 */
+  private readonly openTab: (() => void) | undefined
   private hostMode = false
   private pushTimer: ReturnType<typeof setTimeout> | undefined
   private disposed = false
   private readonly unsubscribers: Array<() => void> = []
   private readonly runtimeListeners = new Set<() => void>()
 
-  constructor(sessionId: string, pushTarget: RuntimePushTarget, sendBridgeMessage?: RuntimeBridgeSend, activeDocumentId?: string) {
+  constructor(sessionId: string, pushTarget: RuntimePushTarget, sendBridgeMessage?: RuntimeBridgeSend, activeDocumentId?: string, openTab?: () => void) {
     this.sessionId = sessionId
     this.pushTarget = pushTarget
     this.sendBridgeMessage = sendBridgeMessage
+    this.openTab = openTab
     this.mockProvider = new MockDocumentProvider(activeDocumentId === undefined ? undefined : { activeDocumentId })
     this.hostProvider = new HostBackedDocumentProvider({
       sendSelectNode: (nodeId) => this.sendBridgeMessage?.({ type: 'select-node', nodeId }),
@@ -190,6 +193,11 @@ export class ViewRuntime {
         return this.applySetFilter(command.filter)
       case 'reset_view':
         return this.applyReset()
+      case 'open_tab':
+        // 打开视图页签是 better-sidebar 侧操作（由注入回调执行），
+        // 不改变视图状态，无需推送镜像。
+        this.openTab?.()
+        return { ok: true, code: 'OK', message: '已打开「结构化文档」视图页签。' }
       case 'sync_state':
         this.pushNow()
         return { ok: true, code: 'OK', message: '已同步视图状态。' }

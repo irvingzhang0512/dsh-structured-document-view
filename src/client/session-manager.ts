@@ -15,6 +15,13 @@ export class ViewSessionManager {
   private readonly clients = new Map<string, ViewBridgeClient>()
   private activeSessionId: string | null = null
   private disposed = false
+  /** 「打开结构化文档页签」回调（open_tab 命令执行时调用；由 apply 注入）。 */
+  private openTabHandler: (() => void) | undefined = undefined
+
+  /** 注入打开视图页签的回调（客户端 apply 创建 adapter 后设置）。 */
+  setOpenTabHandler(handler: () => void): void {
+    this.openTabHandler = handler
+  }
 
   /** 获取（必要时创建）某会话的运行时。 */
   ensureRuntime(sessionId: string): ViewRuntime {
@@ -24,6 +31,8 @@ export class ViewSessionManager {
         sessionId,
         (wire) => this.clientFor(sessionId)?.sendWire(wire),
         (message) => this.clientFor(sessionId)?.sendMessage(message),
+        undefined,
+        () => this.openTabHandler?.(),
       )
       this.runtimes.set(sessionId, runtime)
     }

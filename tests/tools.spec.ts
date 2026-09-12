@@ -66,7 +66,7 @@ function makeWire(): ViewStateWire {
 }
 
 describe('registerViewTools', () => {
-  it('注册全部 9 个工具，且无多余', () => {
+  it('注册全部 10 个工具，且无多余', () => {
     const ctx = makeCtx()
     const { deps } = makeBridge()
     registerViewTools(ctx as never, deps as never)
@@ -126,6 +126,32 @@ describe('registerViewTools', () => {
     const tool = ctx.registered.find(t => t.name === 'set_view')!
     await expect(runTool(tool, { view: 'pdf' })).rejects.toThrow()
     expect(dispatch).not.toHaveBeenCalled()
+  })
+
+  it('open_view_tab：派发 open_tab 命令 → ack 成功', async () => {
+    const ctx = makeCtx()
+    const { deps, dispatch } = makeBridge()
+    registerViewTools(ctx as never, deps as never)
+    const tool = ctx.registered.find(t => t.name === 'open_view_tab')!
+    const result = (await runTool(tool, {})) as Record<string, unknown>
+    expect(result.ok).toBe(true)
+    expect(result.code).toBe('OK')
+    expect(result.delivered).toBe(true)
+    expect(result.queued).toBe(false)
+    expect(dispatch).toHaveBeenCalledWith('s1', { name: 'open_tab' }, undefined)
+  })
+
+  it('open_view_tab：未连接 → QUEUED', async () => {
+    const ctx = makeCtx()
+    const { deps } = makeBridge({
+      dispatch: async () => ({ delivered: false, queued: true, ack: null }),
+    })
+    registerViewTools(ctx as never, deps as never)
+    const tool = ctx.registered.find(t => t.name === 'open_view_tab')!
+    const result = (await runTool(tool, {})) as Record<string, unknown>
+    expect(result.ok).toBe(true)
+    expect(result.code).toBe('QUEUED')
+    expect(result.queued).toBe(true)
   })
 
   it('expand_node：ack 携带 nodeId/nodeTitle', async () => {

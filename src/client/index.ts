@@ -50,6 +50,8 @@ export function apply(ctx: Context): void {
       service,
       component: () => (props) => createElement(TabView, { ...props, manager }),
     })
+    // 宿主 open_tab 命令 → 打开/激活「结构化文档」页签。
+    manager.setOpenTabHandler(() => adapter.openViewTab())
     const disposers: Array<() => void> = [adapter.registerTab()]
 
     // 跟随活动会话：会话变化时切换桥连接（运行时按会话保留），并把

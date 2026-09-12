@@ -50,7 +50,7 @@ describe('SKILL.md 规范', () => {
       expect(raw).toContain(name)
     }
     // 工具表里出现的反引号工具名必须是合法工具（防拼写漂移）
-    const mentioned = new Set([...raw.matchAll(/`(set_view|get_view_state|expand_node|collapse_node|focus_node|set_depth|set_layout|set_filter|reset_view)`/g)].map(m => m[1]!))
+    const mentioned = new Set([...raw.matchAll(/`(set_view|get_view_state|expand_node|collapse_node|focus_node|set_depth|set_layout|set_filter|reset_view|open_view_tab)`/g)].map(m => m[1]!))
     for (const name of mentioned) {
       expect(VIEW_TOOL_NAMES).toContain(name)
     }
@@ -197,6 +197,17 @@ describe('Skill → Tool 端到端（中文意图链路）', () => {
       expect(view.viewState?.currentView).toBe('markdown')
       expect(view.viewState?.depth).toBe(0)
       expect(view.viewState?.selectedNodeId).toBe('node_003')
+    } finally {
+      env.teardown()
+    }
+  })
+
+  it('打开结构化文档 → open_view_tab → 客户端回执 OK', async () => {
+    const env = buildE2E()
+    try {
+      const result = (await env.run('open_view_tab', {})) as Record<string, unknown>
+      expect(result.ok).toBe(true)
+      expect(result.delivered).toBe(true)
     } finally {
       env.teardown()
     }

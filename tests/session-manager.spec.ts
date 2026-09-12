@@ -73,6 +73,24 @@ describe('ViewSessionManager session 生命周期', () => {
     manager.disposeAll()
   })
 
+  it('open_tab 命令 → 调用注入的打开页签回调并回执 ack', () => {
+    const manager = new ViewSessionManager()
+    const opened = vi.fn()
+    manager.setOpenTabHandler(opened)
+    manager.setActiveSession('s1')
+
+    const socket = FakeWebSocket.instances[0]!
+    socket.readyState = FakeWebSocket.OPEN
+    socket.onmessage?.({ data: JSON.stringify({ type: 'command', id: 'cmd-open', command: { name: 'open_tab' } }) })
+
+    expect(opened).toHaveBeenCalledOnce()
+    const sent = socket.send.mock.calls.map(call => String(call[0]))
+    const ack = sent.find(text => text.includes('command-result') && text.includes('cmd-open'))
+    expect(ack).toBeDefined()
+    expect(JSON.parse(ack!).result).toMatchObject({ id: 'cmd-open', ok: true, code: 'OK' })
+    manager.disposeAll()
+  })
+
   it('隐藏的恢复 Tab 先准备 runtime，重新打开时显示同一会话内容', () => {
     const manager = new ViewSessionManager()
     const baseProps = {

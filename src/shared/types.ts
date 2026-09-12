@@ -62,6 +62,7 @@ export type ViewCommand =
   | { name: 'set_layout'; layout: MindMapLayout }
   | { name: 'set_filter'; filter: ViewFilter | null }
   | { name: 'reset_view' }
+  | { name: 'open_tab' }
   | { name: 'sync_state' }
 
 /** 命令名集合（wire 校验用）。 */
@@ -74,6 +75,7 @@ export const VIEW_COMMAND_NAMES: readonly string[] = [
   'set_layout',
   'set_filter',
   'reset_view',
+  'open_tab',
   'sync_state',
 ]
 

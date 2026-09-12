@@ -125,6 +125,7 @@ export function parseCommand(raw: unknown): ViewCommand {
     case 'set_filter':
       return { name, filter: parseFilter(raw.filter) }
     case 'reset_view':
+    case 'open_tab':
     case 'sync_state':
       return { name }
     default:
