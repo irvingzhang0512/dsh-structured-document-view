@@ -1,76 +1,105 @@
+**English** | [简体中文](README.zh-CN.md)
+
 # dsh-structured-document-view
 
-DSH（DeepSeek Harness）插件：基于 dsh-better-sidebar 展示**结构化文档**的
-多视图侧边栏页（Markdown / 思维导图 / 表格），配套 9 个 **View Tool** 与
-可导入的**中文 Skill**，让 Agent 与用户用自然语言控制"视图状态"。
+A DSH (DeepSeek Harness) plugin that adds a **Structured Document** page to the web sidebar on top of `dsh-better-sidebar`. It renders the current structured document in three switchable views — **Markdown**, **Mind Map**, and **Table** — and ships **10 View Tools** plus a bundled **Chinese skill**, so both agents and users can control the *view state* with natural language.
 
-> 数据源：默认内置 Mock 示例（会议纪要 / 项目管理 / 思路整理）。
-> 安装 `dsh-structured-document` 后**自动切换为真实文档**——在侧边栏打开
-> 一个 Markdown 结构化文档即被解析为 IR 并实时展示；文档由
-> dsh-structured-document 的工具修改时，视图自动刷新。
+> View state only — never the document. Every tool and every skill intent changes *how* the document is displayed (view type, depth, layout, filter, expansion, focus, zoom, pan). The document content itself is never modified; editing belongs to the data source (`dsh-structured-document` when installed, or the built-in mock documents).
 
-## 特性
+## Features
 
-- **三种视图**：Markdown（标题层级 + 角色标签 + 属性）、思维导图
-  （mind-elixir：展开/收起/点击/缩放/平移/聚焦/三种布局）、表格
-  （按角色分组 + 属性列）；
-- **视图状态与文档分离**：`currentView / selected / focused / expanded /
-  collapsed / depth / zoom / pan / layout / filter` 全部是纯 reducer 的
-  不可变状态，**只影响"怎么看"，绝不改文档**；
-- **9 个 View Tool**：set_view / get_view_state / expand_node / collapse_node /
-  focus_node / set_depth / set_layout / set_filter / reset_view；
-- **中文 Skill**：安装插件即安装技能，支持「切成思维导图」「只显示两层」
-  「展开第二个议题」「聚焦当前节点」「改成从左到右布局」「恢复默认视图」
-  等自然语言意图；
-- **复用 dsh-better-sidebar**：Tab / 展示区域 / 生命周期全部复用，
-  软依赖（optional peerDependency），未安装时 Agent 工具仍可用（排队自动应用）；
-- **Node ID 一致**：思维导图节点 ID 就是文档节点 ID，点击/聚焦/展开
-  与文档节点一一对应；
-- **与 dsh-structured-document 双向配合**：宿主 `ctx.get` 软依赖探测 +
-  文档/选中经桥推送（HostBackedDocumentProvider），视图点选回写选中，
-  better-sidebar 当前文件联动懒绑定；未装时完整回退 Mock（独立可用）。
+- **Three views over one document**
+  - `markdown` — heading hierarchy with role labels and property lists;
+  - `mindmap` — powered by [mind-elixir](https://www.npmjs.com/package/mind-elixir) v5 (read-only): expand/collapse, click to select, wheel zoom, drag pan, focus-to-center, and three layouts (`mind` / `logical` / `down`);
+  - `table` — grouped by role with property columns (respects depth and filter).
+- **View state is fully separated from the document** — `currentView / selected / focused / expanded / collapsed / depth / zoom / pan / layout / filter` is pure, immutable reducer state. It only affects *how you look*, never the document.
+- **10 View Tools** — `set_view`, `get_view_state`, `expand_node`, `collapse_node`, `focus_node`, `set_depth`, `set_layout`, `set_filter`, `reset_view`, `open_view_tab`. Each tool has a single responsibility and returns a uniform envelope `{ ok, code, message, delivered, queued, ... }`.
+- **Chinese skill included** — installing the plugin auto-registers the `structured-document-view` skill. It understands natural-language intents such as "switch to mind map", "show only two levels", "expand the second topic", "focus the current node", "switch to left-to-right layout", and "restore the default view".
+- **Tab opens automatically** — the Structured Document tab opens itself the first time a session becomes active; `open_view_tab` opens/activates it on demand at any time.
+- **Node IDs stay identical** — mind map node IDs *are* the document node IDs, so clicks, focus, and expansion map 1:1 to document nodes.
+- **Mock by default, real documents on demand** — ships with three built-in mock documents (meeting minutes / project management / idea organization) and works standalone. Installing `dsh-structured-document` switches the view to real documents automatically via `HostBackedDocumentProvider`: the host pushes document snapshots and selection over the bridge, clicks in the view write the selection back, and the better-sidebar current file is linked through lazy binding. Without it, everything falls back to Mock — fully usable on its own.
+- **Reuses `dsh-better-sidebar`** — the tab, display area, and lifecycle all come from better-sidebar (optional peer dependency). If it is missing, the host-side tools, bridge, and skill still work; commands are queued and applied automatically once the view opens.
 
-## 快速开始
+## Quick Start
+
+**Requirements**
+
+- DSH web (Node >= 20);
+- `dsh-better-sidebar` — soft dependency, recommended (provides the sidebar page and current-file linking; the host-side tools, bridge, and skill still work without it);
+- `dsh-structured-document` — optional; install to show real structured documents instead of the built-in mock examples.
 
 ```bash
-# 仅视图（Mock 示例文档）
+# View only — works standalone with the built-in mock documents
 dsh plugin --profile web add dsh-structured-document-view@latest
 
-# 配合真实结构化文档（推荐装齐）
+# Recommended: pair with the real document data source
 dsh plugin --profile web add dsh-structured-document@latest
 ```
 
-浏览器刷新后，侧边栏「+」打开 **结构化文档** 页；装了
-dsh-structured-document 后在侧边栏打开一个 `.md` 结构化文档即开始展示。
-详见 [docs/usage.md](docs/usage.md)。
+After installing, refresh the browser: the sidebar "+" menu shows the **Structured Document** page, and it opens automatically for the active session. Without `dsh-structured-document` you see the built-in mock documents; with it, open a `.md` / `.markdown` structured document in the sidebar to start rendering the real one — the mock switcher disappears, and edits made through `dsh-structured-document` tools refresh the view live.
 
-## 文档
+## View Tools
 
-- [架构与设计决策](docs/architecture.md)
-- [视图与渲染器](docs/views.md)
-- [视图工具](docs/tools.md)
-- [视图技能](docs/skill.md)
-- [Document Provider 接口](docs/document-provider.md)
-- [Sidebar 集成](docs/sidebar-integration.md)
-- [使用指南](docs/usage.md)
+All tools are scoped to the calling agent's session and only mutate view state. Commands are dispatched to the browser client over a WebSocket bridge; if the view is not open they are queued and applied automatically when it opens. `get_view_state` reads the host state mirror directly.
 
-## 开发
+| Tool | Parameters | Purpose |
+| --- | --- | --- |
+| `open_view_tab` | — | Open / activate the Structured Document sidebar tab |
+| `set_view` | `view`: `markdown` \| `mindmap` \| `table` | Switch the current view |
+| `get_view_state` | — | Current view state plus the document outline with Node IDs |
+| `expand_node` | `node?` | Expand a node (explicit expansion can exceed the depth limit) |
+| `collapse_node` | `node?` | Collapse a node's subtree |
+| `focus_node` | `node?` | Focus a node (center it and select it) |
+| `set_depth` | `depth`: `0`–`20` | Show only the first N levels (`0` / `null` = unlimited; root is level 1) |
+| `set_layout` | `layout`: `mind` \| `logical` \| `down` | Mind map layout: both sides / right side / top-down |
+| `set_filter` | `filter?` | Filter by role or properties; omit or pass `{}` to clear |
+| `reset_view` | — | Restore the default view (Markdown, all levels, no filter) while keeping the current selection |
+
+For `expand_node` / `collapse_node` / `focus_node`, the `node` parameter accepts:
+
+1. a **Node ID** (`node_023` — the most reliable; get it from `get_view_state`'s outline);
+2. the alias **`current`** (the default; equivalent to `@selected` / `@current` / `@focused`);
+3. a **title** (exact match first, then substring match; multiple candidates return a candidate list instead of guessing).
+
+## Skill
+
+The bundled Chinese skill `structured-document-view` is registered automatically when the plugin mounts — installing the plugin installs the skill. It maps Chinese natural-language intents to tool sequences (English translations shown for reference):
+
+| Intent | Tool call |
+| --- | --- |
+| Switch to mind map | `set_view(view="mindmap")` |
+| Show it as a table | `set_view(view="table")` |
+| Show only two levels | `set_depth(2)` |
+| Expand the second topic | `get_view_state` → `expand_node(node=<Node ID>)` |
+| Collapse everything else | `get_view_state` → `collapse_node` per sibling |
+| Focus the current node | `focus_node()` (defaults to the current selection) |
+| Switch to left-to-right layout | `set_layout(layout="logical")` |
+| Restore the default view | `reset_view()` |
+| Show only to-dos | `set_filter(filter={ role: "action_item" })` / `{ role: "task" }` |
+| Clear the filter | `set_filter({})` |
+
+## Development
 
 ```bash
 npm install
-npm run typecheck   # 类型检查
-npm test            # 87 个测试（含 Skill→Tool 端到端链路）
-npm run build       # 构建 lib/（宿主 tsc + 客户端 tsdown bundle）
-npm pack            # 打包发布产物
+npm run typecheck   # type check (inlines the mind-elixir CSS first)
+npm test            # Vitest unit tests
+npm run build       # build lib/ (host tsc + client tsdown bundle)
+npm pack            # package the publishable artifact
 ```
 
-## 发布检查
+## Documentation
 
-- 客户端 bundle：`lib/client.js`，`window.__ModuleLoader__.load({ id: 'dsh-structured-document-view', factory })`
-  单一闭包，mind-elixir 内联、react 走模块表、无 node 内建 / @deepseek-ai value import；
-- 宿主半区：`lib/index.js`（tsc 编译，含 cordis.patch.yml 挂载声明）；
-- 随包：`skills/`（自动注册）、`docs/`、`examples/`、`tests/`。
+All docs live under `docs/` (written in Chinese):
+
+- [Usage guide](docs/usage.md)
+- [Architecture & design decisions](docs/architecture.md)
+- [Views & renderers](docs/views.md)
+- [View tools](docs/tools.md)
+- [View skill](docs/skill.md)
+- [Document provider interface](docs/document-provider.md)
+- [Sidebar integration](docs/sidebar-integration.md)
 
 ## License
 
-MIT — 见 [LICENSE](LICENSE)。
+MIT — see [LICENSE](LICENSE).
