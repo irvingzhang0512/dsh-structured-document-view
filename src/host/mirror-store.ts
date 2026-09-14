@@ -10,6 +10,7 @@ import type { ViewStateMirror, ViewStateWire } from '../shared/types.ts'
 /** View 状态镜像存储。 */
 export class ViewMirrorStore {
   private mirrors = new Map<string, ViewStateMirror>()
+  private listeners = new Map<string, Set<(state: ViewStateMirror | undefined) => void>>()
 
   /** 客户端推送新状态。 */
   apply(wire: ViewStateWire, now = Date.now()): void {
@@ -26,6 +27,7 @@ export class ViewMirrorStore {
         updatedAt: now,
       })
     }
+    this.emit(wire.sessionId)
   }
 
   /** 会话失去连接。 */
@@ -34,6 +36,7 @@ export class ViewMirrorStore {
     if (mirror !== undefined) {
       mirror.connected = false
       mirror.updatedAt = now
+      this.emit(sessionId)
     }
   }
 
@@ -47,8 +50,25 @@ export class ViewMirrorStore {
     return [...this.mirrors.values()]
   }
 
+  subscribe(sessionId: string, listener: (state: ViewStateMirror | undefined) => void): () => void {
+    const set = this.listeners.get(sessionId) ?? new Set<(state: ViewStateMirror | undefined) => void>()
+    set.add(listener)
+    this.listeners.set(sessionId, set)
+    listener(this.mirrors.get(sessionId))
+    return () => {
+      set.delete(listener)
+      if (set.size === 0) this.listeners.delete(sessionId)
+    }
+  }
+
   /** 清空（teardown）。 */
   clear(): void {
     this.mirrors.clear()
+    this.listeners.clear()
+  }
+
+  private emit(sessionId: string): void {
+    const state = this.mirrors.get(sessionId)
+    for (const listener of this.listeners.get(sessionId) ?? []) listener(state)
   }
 }

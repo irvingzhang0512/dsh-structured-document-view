@@ -107,6 +107,18 @@ describe('ViewBridgeServer', () => {
     expect(store.get('s1')?.connected).toBe(false)
   })
 
+  it('镜像订阅立即给出当前状态并持续推送连接变化', () => {
+    const store = new ViewMirrorStore()
+    const seen: Array<string> = []
+    store.apply(makeWire('s1'), 1)
+    const off = store.subscribe('s1', mirror => seen.push(mirror?.connected ? mirror.state?.currentView ?? 'empty' : 'offline'))
+    store.apply({ ...makeWire('s1'), currentView: 'table' }, 2)
+    store.markDisconnected('s1', 3)
+    off()
+    store.apply({ ...makeWire('s1'), currentView: 'mindmap' }, 4)
+    expect(seen).toEqual(['markdown', 'table', 'offline'])
+  })
+
   it('排队命令有界（超过 64 条丢弃）', async () => {
     const store = new ViewMirrorStore()
     const bridge = new ViewBridgeServer({ store })

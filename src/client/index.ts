@@ -69,13 +69,16 @@ export function apply(ctx: Context): void {
         }
         const runtime = manager.getRuntime(nextSession)
         if (runtime !== undefined) {
-          const currentFile = activeFileOf(snapshot.state)
+          const workbench = (window as unknown as { __DSH_DISCUSSION_WORKBENCH__?: { getTarget(sessionId: string): string | null } }).__DSH_DISCUSSION_WORKBENCH__
+          const currentFile = workbench === undefined ? activeFileOf(snapshot.state) : workbench.getTarget(nextSession)
           const path = isMarkdownFile(currentFile) ? currentFile : null
           runtime.sendCurrentFile(path)
         }
       }
     }
     disposers.push(adapter.subscribeState(onChange))
+    window.addEventListener('dsh-workbench:target', onChange)
+    disposers.push(() => window.removeEventListener('dsh-workbench:target', onChange))
     onChange()
 
     return () => {

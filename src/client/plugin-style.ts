@@ -71,6 +71,7 @@ export const PLUGIN_STYLE = `
   text-overflow: ellipsis;
 }
 .sdv-status-meta { opacity: .7; margin-left: 6px; }
+.sdv-row-selected { outline: 2px solid var(--accent-color, #4f6ef7); outline-offset: -2px; background: rgba(79,110,247,.08); }
 .sdv-guide { border-bottom: 1px solid rgba(128,128,128,.18); background: var(--sidebar-bg, #fff); }
 .sdv-guide-quick { min-height: 32px; display: flex; align-items: center; gap: 5px; padding: 4px 8px; overflow-x: auto; }
 .sdv-guide-label { color: var(--sidebar-fg-muted, #777); white-space: nowrap; font-size: 11px; }

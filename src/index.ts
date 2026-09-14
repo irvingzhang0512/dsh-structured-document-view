@@ -23,6 +23,7 @@ import { loadBundledSkill } from './host/skill-registration.ts'
 import { registerViewTools } from './tools/view-tools.ts'
 import { isTrustedApiRequest } from './host/trust-fence.ts'
 import { parseClientMessage } from './shared/wire.ts'
+import type { ViewCommand } from './shared/types.ts'
 import type { Context } from './context-types.ts'
 
 /** cordis.yml 行用的插件标识。 */
@@ -50,6 +51,12 @@ export function apply(ctx: Context): void {
     store: mirror,
     capabilities: { structuredDocument: structuredDocumentService !== undefined },
     onMessage: (sessionId, message) => documentIntegrator?.handleMessage(sessionId, message),
+  })
+  const removeViewService = ctx.provide('structuredDocumentView', {
+    id: 'dsh-structured-document-view' as const,
+    getState: (sessionId: string) => mirror.get(sessionId),
+    subscribe: (sessionId: string, listener: (state: ReturnType<ViewMirrorStore['get']>) => void) => mirror.subscribe(sessionId, listener),
+    dispatch: (sessionId: string, command: ViewCommand) => bridge.dispatch(sessionId, command),
   })
   if (structuredDocumentService !== undefined) {
     documentIntegrator = new HostDocumentIntegrator({
@@ -108,6 +115,7 @@ export function apply(ctx: Context): void {
   }, 'dsh-structured-document-view: bundled skill')
 
   ctx.effect(() => () => {
+    removeViewService()
     documentIntegrator?.dispose()
     toolsDisposer()
     mirror.clear()
