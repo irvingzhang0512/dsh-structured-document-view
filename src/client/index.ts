@@ -69,10 +69,15 @@ export function apply(ctx: Context): void {
         }
         const runtime = manager.getRuntime(nextSession)
         if (runtime !== undefined) {
-          const workbench = (window as unknown as { __DSH_DISCUSSION_WORKBENCH__?: { getTarget(sessionId: string): string | null } }).__DSH_DISCUSSION_WORKBENCH__
-          const currentFile = workbench === undefined ? activeFileOf(snapshot.state) : workbench.getTarget(nextSession)
-          const path = isMarkdownFile(currentFile) ? currentFile : null
-          runtime.sendCurrentFile(path)
+          const workbench = (window as unknown as { __DSH_DISCUSSION_WORKBENCH__?: { ownsDocumentBinding?: boolean } }).__DSH_DISCUSSION_WORKBENCH__
+          // With the workbench installed, its host coordinator is the only
+          // owner of document binding. The view consumes document snapshots
+          // and must not race a target change with a stale sidebar snapshot.
+          if (workbench?.ownsDocumentBinding !== true) {
+            const currentFile = activeFileOf(snapshot.state)
+            const path = isMarkdownFile(currentFile) ? currentFile : null
+            runtime.sendCurrentFile(path)
+          }
         }
       }
     }
