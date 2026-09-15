@@ -96,7 +96,8 @@ function mapNode(
 
 /** 计算思维导图数据模型。 */
 export function toMindMapViewModel(document: StructuredDocument, state: ViewState): MindMapViewModel {
-  const root = mapNode(document.root, 1, state, false)
+  const mindmapState = { ...state, depth: state.viewDepths.mindmap }
+  const root = mapNode(document.root, 1, mindmapState, false)
   if (root === null) {
     // 理论不可达：根恒可见。
     return {

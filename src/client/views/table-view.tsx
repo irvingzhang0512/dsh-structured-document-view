@@ -32,7 +32,7 @@ export function TableView({ runtime, state }: { runtime: ViewRuntime; state: Vie
             </thead>
             <tbody>
               {group.rows.map(row => (
-                <tr key={row.id} className={row.id === state.selectedNodeId ? 'sdv-row-selected' : ''}>
+                <tr key={row.id} className={row.id === state.selectedNodeId ? 'sdv-row-selected' : ''} onClick={() => runtime.handleUserSelectNode(row.id)}>
                   <td className="sdv-cell-title">{row.title}</td>
                   {group.propertyKeys.map(key => <td key={key}>{String(rowProperty(row, key) ?? '')}</td>)}
                   <td className="sdv-cell-content">{row.content}</td>

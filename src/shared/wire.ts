@@ -13,7 +13,7 @@ import type {
   ViewStateWire,
 } from './types.ts'
 import { VIEW_COMMAND_NAMES } from './types.ts'
-import { MIND_MAP_LAYOUTS, VIEW_NAMES, type MindMapLayout, type ViewFilter, type ViewName } from './view-state.ts'
+import { MIND_MAP_LAYOUTS, READER_MODES, VIEW_NAMES, type MindMapLayout, type ReaderMode, type ViewFilter, type ViewName } from './view-state.ts'
 
 /** wire 解析失败。 */
 export class WireError extends Error {
@@ -68,6 +68,21 @@ function isLayout(value: unknown): value is MindMapLayout {
   return typeof value === 'string' && (MIND_MAP_LAYOUTS as readonly string[]).includes(value)
 }
 
+function parseDepth(value: unknown): number | null {
+  if (value === null) return null
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > 20) throw new WireError('invalid view depth')
+  return value
+}
+
+function parseViewDepths(value: unknown): import('./view-state.ts').ViewDepths {
+  if (!isRecord(value)) return { markdown: null, mindmap: 2, table: null }
+  return {
+    markdown: value.markdown === undefined ? null : parseDepth(value.markdown),
+    mindmap: value.mindmap === undefined ? 2 : parseDepth(value.mindmap),
+    table: value.table === undefined ? null : parseDepth(value.table),
+  }
+}
+
 function parseFilter(value: unknown): ViewFilter | null {
   if (value === null || value === undefined) return null
   if (!isRecord(value)) throw new WireError('invalid filter')
@@ -113,6 +128,18 @@ export function parseCommand(raw: unknown): ViewCommand {
       const mode = raw.mode
       if (mode !== undefined && mode !== 'visible' && mode !== 'center') throw new WireError('invalid focus mode')
       return { name, ...(node !== undefined && node !== '' ? { node } : {}), ...(mode !== undefined ? { mode } : {}) }
+    }
+    case 'open_node': {
+      const node = optionalString(raw, 'node')
+      return { name, ...(node !== undefined && node !== '' ? { node } : {}) }
+    }
+    case 'set_reader_mode': {
+      if (typeof raw.mode !== 'string' || !(READER_MODES as readonly string[]).includes(raw.mode)) throw new WireError('invalid reader mode')
+      return { name, mode: raw.mode as ReaderMode }
+    }
+    case 'navigate_section': {
+      if (raw.direction !== 'previous' && raw.direction !== 'next') throw new WireError('invalid section direction')
+      return { name, direction: raw.direction }
     }
     case 'set_zoom': {
       const zoom = optionalNumber(raw, 'zoom')
@@ -171,6 +198,13 @@ export function parseClientMessage(text: string): ClientToHostMessage {
         expandedNodeIds: stringArray(state.expandedNodeIds, 'expandedNodeIds'),
         collapsedNodeIds: stringArray(state.collapsedNodeIds, 'collapsedNodeIds'),
         depth: state.depth === null ? null : optionalNumber(state, 'depth') ?? null,
+        viewDepths: parseViewDepths(state.viewDepths),
+        readerMode: typeof state.readerMode === 'string' && (READER_MODES as readonly string[]).includes(state.readerMode)
+          ? state.readerMode as ReaderMode
+          : 'section',
+        outlineCollapsedNodeIds: Array.isArray(state.outlineCollapsedNodeIds)
+          ? stringArray(state.outlineCollapsedNodeIds, 'outlineCollapsedNodeIds')
+          : [],
         zoom: optionalNumber(state, 'zoom') ?? 1,
         pan: { x: optionalNumber(state.pan as Record<string, unknown>, 'x') ?? 0, y: optionalNumber(state.pan as Record<string, unknown>, 'y') ?? 0 },
         layout: requireString(state, 'layout') as MindMapLayout,
@@ -184,6 +218,11 @@ export function parseClientMessage(text: string): ClientToHostMessage {
       if (selectedTitle !== undefined) wire.selectedNodeTitle = selectedTitle
       const focused = optionalString(state, 'focusedNodeId')
       if (focused !== undefined) wire.focusedNodeId = focused
+      if (Array.isArray(state.selectedNodePath)) {
+        wire.selectedNodePath = state.selectedNodePath
+          .filter(isRecord)
+          .map(item => ({ id: requireString(item, 'id'), title: requireString(item, 'title') }))
+      }
       if (isRecord(state.document)) {
         const doc = state.document
         wire.document = {

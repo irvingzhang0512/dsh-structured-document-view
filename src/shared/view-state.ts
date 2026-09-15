@@ -13,6 +13,10 @@ import type { NodeId, NodeProperties } from './ir.ts'
 export const VIEW_NAMES = ['markdown', 'mindmap', 'table'] as const
 export type ViewName = (typeof VIEW_NAMES)[number]
 
+export const READER_MODES = ['section', 'document'] as const
+export type ReaderMode = (typeof READER_MODES)[number]
+export type ViewDepths = Record<ViewName, number | null>
+
 /** 视图中文名（用于展示与 Skill 文档）。 */
 export const VIEW_LABELS: Record<ViewName, string> = {
   markdown: 'Markdown 视图',
@@ -72,6 +76,12 @@ export interface ViewState {
   collapsedNodeIds: NodeId[]
   /** 显示层级；null 表示不限。 */
   depth: number | null
+  /** 各视图独立的显示层级；depth 始终镜像当前视图的值。 */
+  viewDepths: ViewDepths
+  /** Markdown 阅读范围：当前章节或整篇文档。 */
+  readerMode: ReaderMode
+  /** 大纲自身的收起状态，不影响正文或思维导图。 */
+  outlineCollapsedNodeIds: NodeId[]
   /** 缩放比例（思维导图）。 */
   zoom: number
   /** 画布位置（思维导图）。 */
@@ -90,6 +100,9 @@ export const DEFAULT_VIEW_STATE: ViewState = {
   expandedNodeIds: [],
   collapsedNodeIds: [],
   depth: null,
+  viewDepths: { markdown: null, mindmap: 2, table: null },
+  readerMode: 'section',
+  outlineCollapsedNodeIds: [],
   zoom: 1,
   pan: { x: 0, y: 0 },
   layout: 'logical',
@@ -105,6 +118,9 @@ export function createDefaultViewState(): ViewState {
     expandedNodeIds: [],
     collapsedNodeIds: [],
     depth: null,
+    viewDepths: { markdown: null, mindmap: 2, table: null },
+    readerMode: 'section',
+    outlineCollapsedNodeIds: [],
     zoom: 1,
     pan: { x: 0, y: 0 },
     layout: 'logical',
@@ -123,7 +139,7 @@ function withUnique<T>(list: readonly T[], value: T): T[] {
 /** 切换视图。 */
 export function setView(state: ViewState, view: ViewName): ViewState {
   if (state.currentView === view) return state
-  return { ...state, currentView: view }
+  return { ...state, currentView: view, depth: state.viewDepths[view] }
 }
 
 /** 设置选中节点（当前节点）。 */
@@ -166,8 +182,22 @@ export function collapseNode(state: ViewState, nodeId: NodeId): ViewState {
 
 /** 设置显示层级；depth 为 null 表示不限。 */
 export function setDepth(state: ViewState, depth: number | null): ViewState {
-  if (state.depth === depth) return state
-  return { ...state, depth }
+  if (state.depth === depth && state.viewDepths[state.currentView] === depth) return state
+  return { ...state, depth, viewDepths: { ...state.viewDepths, [state.currentView]: depth } }
+}
+
+export function setReaderMode(state: ViewState, readerMode: ReaderMode): ViewState {
+  return state.readerMode === readerMode ? state : { ...state, readerMode }
+}
+
+export function toggleOutlineNode(state: ViewState, nodeId: NodeId): ViewState {
+  const collapsed = state.outlineCollapsedNodeIds.includes(nodeId)
+  return {
+    ...state,
+    outlineCollapsedNodeIds: collapsed
+      ? without(state.outlineCollapsedNodeIds, nodeId)
+      : withUnique(state.outlineCollapsedNodeIds, nodeId),
+  }
 }
 
 /** 设置思维导图布局。 */

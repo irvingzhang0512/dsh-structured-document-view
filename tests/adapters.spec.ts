@@ -17,6 +17,7 @@ import {
   setDepth,
   setFilter,
   setLayout,
+  setView,
 } from '../src/shared/view-state.ts'
 
 const thinkingDoc = thinking as unknown as StructuredDocument
@@ -84,13 +85,13 @@ describe('mindmap adapter', () => {
   })
 
   it('层级限制：depth=1 只保留根；depth=2 隐藏第 3 层；展开可突破', () => {
-    const one = toMindMapViewModel(thinkingDoc, setDepth(createDefaultViewState(), 1))
+    const one = toMindMapViewModel(thinkingDoc, setDepth(setView(createDefaultViewState(), 'mindmap'), 1))
     expect(one.root.children).toEqual([]) // 第 2 层全部隐藏
-    const two = toMindMapViewModel(thinkingDoc, setDepth(createDefaultViewState(), 2))
+    const two = toMindMapViewModel(thinkingDoc, setDepth(setView(createDefaultViewState(), 'mindmap'), 2))
     const node002 = two.root.children.find(n => n.id === 'node_002')!
     expect(node002.children).toEqual([]) // 第 3 层（node_003 等）隐藏
     // 展开 node_002（显式展开链）→ 第 3 层可见
-    let state = setDepth(createDefaultViewState(), 2)
+    let state = setDepth(setView(createDefaultViewState(), 'mindmap'), 2)
     state = expandNode(state, 'node_002')
     const three = toMindMapViewModel(thinkingDoc, state)
     const node002b = three.root.children.find(n => n.id === 'node_002')!
@@ -98,20 +99,20 @@ describe('mindmap adapter', () => {
   })
 
   it('显式展开的节点 expanded:true', () => {
-    let state = setDepth(createDefaultViewState(), 2)
+    let state = setDepth(setView(createDefaultViewState(), 'mindmap'), 2)
     state = expandNode(state, 'node_002')
     const model = toMindMapViewModel(thinkingDoc, state)
     const node002 = model.root.children.find(n => n.id === 'node_002')!
     expect(node002.expanded).toBe(true)
     // 不限层级时子节点直接可见
-    const unlimited = toMindMapViewModel(thinkingDoc, createDefaultViewState())
+    const unlimited = toMindMapViewModel(thinkingDoc, setDepth(setView(createDefaultViewState(), 'mindmap'), null))
     const unlimitedNode002 = unlimited.root.children.find(n => n.id === 'node_002')!
     expect(unlimitedNode002.expanded).toBe(true)
     expect(unlimitedNode002.children.length).toBeGreaterThan(0)
   })
 
   it('filter 裁剪不匹配子树但保留祖先', () => {
-    const model = toMindMapViewModel(thinkingDoc, setFilter(createDefaultViewState(), { role: 'problem' }))
+    const model = toMindMapViewModel(thinkingDoc, setFilter(setDepth(setView(createDefaultViewState(), 'mindmap'), null), { role: 'problem' }))
     const node002 = model.root.children.find(n => n.id === 'node_002')!
     // node_002 自身不匹配，但其子节点 node_005（problem）匹配 → 保留
     expect(node002).toBeDefined()
@@ -143,7 +144,7 @@ describe('table adapter', () => {
   })
 
   it('表格忽略收起但尊重 depth 与 filter', () => {
-    let state = collapseNode(createDefaultViewState(), 'node_002')
+    let state = collapseNode(setView(createDefaultViewState(), 'table'), 'node_002')
     state = setDepth(state, 3)
     const thinkingModel = toTableViewModel(thinkingDoc, state)
     const noteIds = new Set(thinkingModel.groups.flatMap(g => g.rows.map(r => r.id)))

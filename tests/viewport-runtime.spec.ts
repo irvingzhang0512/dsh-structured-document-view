@@ -6,6 +6,31 @@ function makeRuntime(): ViewRuntime {
 }
 
 describe('ViewRuntime 视口命令', () => {
+  it('打开章节并在同级章节间导航', () => {
+    const runtime = makeRuntime()
+    const opened = runtime.applyCommand({ name: 'open_node', node: 'node_002' })
+    expect(opened.ok).toBe(true)
+    expect(runtime.store.getState()).toMatchObject({ currentView: 'markdown', readerMode: 'section', selectedNodeId: 'node_002' })
+    const next = runtime.applyCommand({ name: 'navigate_section', direction: 'next' })
+    expect(next.value?.nodeId).toBe('node_006')
+    expect(runtime.bridge.getSelectedNodeId()).toBe('node_006')
+    const previous = runtime.applyCommand({ name: 'navigate_section', direction: 'previous' })
+    expect(previous.value?.nodeId).toBe('node_002')
+    runtime.dispose()
+  })
+
+  it('切换全文和大纲折叠不改变文档或导图折叠', () => {
+    const runtime = makeRuntime()
+    runtime.applyCommand({ name: 'set_reader_mode', mode: 'document' })
+    runtime.handleUserToggleOutlineNode('node_002')
+    const state = runtime.store.getState()
+    expect(state.readerMode).toBe('document')
+    expect(state.outlineCollapsedNodeIds).toEqual(['node_002'])
+    expect(state.collapsedNodeIds).toEqual([])
+    expect(runtime.buildWire().viewDepths).toEqual({ markdown: null, mindmap: 2, table: null })
+    runtime.dispose()
+  })
+
   it('画布未挂载时返回 VIEW_NOT_READY', async () => {
     const runtime = makeRuntime()
     runtime.applyCommand({ name: 'set_view', view: 'mindmap' })

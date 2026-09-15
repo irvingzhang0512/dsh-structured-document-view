@@ -22,8 +22,10 @@ import {
   setFilter as reducerSetFilter,
   setFocusedNode as reducerSetFocusedNode,
   setLayout as reducerSetLayout,
+  setReaderMode as reducerSetReaderMode,
   setSelectedNode as reducerSetSelectedNode,
   setView as reducerSetView,
+  toggleOutlineNode as reducerToggleOutlineNode,
   type ViewState,
 } from '../shared/view-state.ts'
 import { toOutline } from './adapters/outline.ts'
@@ -195,6 +197,12 @@ export class ViewRuntime {
         return this.applyNodeToggle(command, 'collapse')
       case 'focus_node':
         return this.applyFocus(command.node)
+      case 'open_node':
+        return this.applyOpenNode(command.node)
+      case 'set_reader_mode':
+        return this.applyReaderMode(command.mode)
+      case 'navigate_section':
+        return this.applyNavigateSection(command.direction)
       case 'set_zoom':
       case 'fit_view':
       case 'reset_viewport':
@@ -338,6 +346,50 @@ export class ViewRuntime {
     }
   }
 
+  private applyOpenNode(rawRef: string | undefined): CommandAckPayload {
+    const resolved = this.bridge.resolveNode(rawRef)
+    if (!resolved.ok) return { ok: false, code: resolved.code, message: resolved.message }
+    const node = resolved.node
+    const selectResult = this.bridge.selectNode(node.id)
+    if (!selectResult.ok) return { ok: false, code: selectResult.code, message: selectResult.message }
+    this.store.update(state => reducerSetReaderMode(reducerSetView(reducerSetSelectedNode(state, node.id), 'markdown'), 'section'))
+    this.pushNow()
+    return {
+      ok: true,
+      code: 'OK',
+      message: `已打开章节「${nodeTitle(node)}」。`,
+      value: { nodeId: node.id, nodeTitle: nodeTitle(node), selectedNodeTitle: nodeTitle(node), currentView: 'markdown', readerMode: 'section' },
+    }
+  }
+
+  private applyReaderMode(mode: 'section' | 'document'): CommandAckPayload {
+    this.store.update(state => reducerSetReaderMode(reducerSetView(state, 'markdown'), mode))
+    this.pushNow()
+    return { ok: true, code: 'OK', message: mode === 'section' ? '已切换为当前章节阅读。' : '已切换为整篇文档阅读。', value: { currentView: 'markdown', readerMode: mode } }
+  }
+
+  private applyNavigateSection(direction: 'previous' | 'next'): CommandAckPayload {
+    const document = this.bridge.getDocument()
+    const selected = this.bridge.getSelectedNode()
+    if (document === null) return { ok: false, code: 'DOCUMENT_UNAVAILABLE', message: '当前没有可阅读的文档。' }
+    if (selected === null) return { ok: false, code: 'NO_SELECTED_NODE', message: '尚未选择章节，请先从大纲打开一个章节。' }
+    const findParent = (node: DocNode): DocNode | null => {
+      if (node.children.some(child => child.id === selected.id)) return node
+      for (const child of node.children) {
+        const found = findParent(child)
+        if (found !== null) return found
+      }
+      return null
+    }
+    const parent = findParent(document.root)
+    if (parent === null) return { ok: false, code: 'NODE_NOT_FOUND', message: '文档根节点没有同级章节。' }
+    const index = parent.children.findIndex(child => child.id === selected.id)
+    const nextIndex = direction === 'previous' ? index - 1 : index + 1
+    const target = parent.children[nextIndex]
+    if (target === undefined) return { ok: false, code: 'NODE_NOT_FOUND', message: direction === 'previous' ? '已经是本组第一节。' : '已经是本组最后一节。' }
+    return this.applyOpenNode(target.id)
+  }
+
   private applySetDepth(depth: number | null): CommandAckPayload {
     this.store.update(state => reducerSetDepth(state, depth))
     this.pushNow()
@@ -383,6 +435,19 @@ export class ViewRuntime {
     const selectResult = this.bridge.selectNode(nodeId)
     if (!selectResult.ok) return
     this.store.update(state => reducerSetSelectedNode(state, nodeId))
+    this.pushNow()
+  }
+
+  /** 从大纲、概览或导图预览进入章节阅读。 */
+  handleUserOpenNode(nodeId: NodeId): void {
+    if (this.disposed) return
+    this.applyOpenNode(nodeId)
+  }
+
+  /** 大纲折叠只影响导航树。 */
+  handleUserToggleOutlineNode(nodeId: NodeId): void {
+    if (this.disposed) return
+    this.store.update(state => reducerToggleOutlineNode(state, nodeId))
     this.pushNow()
   }
 
@@ -437,6 +502,9 @@ export class ViewRuntime {
       expandedNodeIds: state.expandedNodeIds,
       collapsedNodeIds: state.collapsedNodeIds,
       depth: state.depth,
+      viewDepths: state.viewDepths,
+      readerMode: state.readerMode,
+      outlineCollapsedNodeIds: state.outlineCollapsedNodeIds,
       zoom: state.zoom,
       pan: state.pan,
       layout: state.layout,
@@ -447,6 +515,16 @@ export class ViewRuntime {
     if (selected !== null) {
       wire.selectedNodeId = selected.id
       wire.selectedNodeTitle = selected.title
+      const path: Array<{ id: string; title: string }> = []
+      const findPath = (node: DocNode): boolean => {
+        path.push({ id: node.id, title: nodeTitle(node) })
+        if (node.id === selected.id) return true
+        for (const child of node.children) if (findPath(child)) return true
+        path.pop()
+        return false
+      }
+      findPath(document!.root)
+      wire.selectedNodePath = path
     }
     if (state.focusedNodeId !== null) wire.focusedNodeId = state.focusedNodeId
     if (document !== null) {

@@ -29,7 +29,7 @@ describe('SKILL.md 规范', () => {
     expect(parsed!.name).toBe('structured-document-view')
     expect(/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(parsed!.name)).toBe(true)
     expect(parsed!.description.length).toBeGreaterThan(10)
-    expect(parsed!.whenToUse).toBeDefined()
+    expect(parsed!.description).toContain('结构化文档')
     // 正文包含工具表与中文示例
     expect(parsed!.content).toContain('set_view')
     expect(parsed!.content).toContain('切成思维导图')

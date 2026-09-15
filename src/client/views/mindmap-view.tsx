@@ -18,6 +18,7 @@ import { useEffect, useRef, useState } from 'react'
 import MindElixir, { type MindElixirData, type MindElixirInstance } from 'mind-elixir'
 import type { MindMapViewModel } from '../adapters/mindmap.ts'
 import type { ViewState } from '../../shared/view-state.ts'
+import type { DocNode, StructuredDocument } from '../../shared/ir.ts'
 import type { ViewCommand } from '../../shared/types.ts'
 import type { CommandAckPayload, MindMapViewportController } from '../runtime.ts'
 import { visibilityDelta } from '../../shared/viewport.ts'
@@ -67,14 +68,16 @@ function nextFrame(): Promise<void> {
 /** 思维导图视图组件。 */
 export function MindMapView(props: {
   model: MindMapViewModel
+  document: StructuredDocument
   state: ViewState
   onSelectNode: (nodeId: string) => void
+  onOpenNode: (nodeId: string) => void
   onToggleNode: (nodeId: string) => void
   onViewStateChange: (patch: { zoom?: number; pan?: { x: number; y: number } }) => void
   onViewportReady: (controller: MindMapViewportController) => () => void
   onCommand: (command: ViewCommand) => Promise<CommandAckPayload>
 }): React.ReactElement {
-  const { model, state, onSelectNode, onToggleNode, onViewStateChange, onViewportReady, onCommand } = props
+  const { model, document: structuredDocument, state, onSelectNode, onOpenNode, onToggleNode, onViewStateChange, onViewportReady, onCommand } = props
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mindRef = useRef<MindElixirInstance | null>(null)
   const [currentZoom, setCurrentZoom] = useState(1)
@@ -136,6 +139,12 @@ export function MindMapView(props: {
     mind.bus.addListener('expandNode', (node) => {
       if (!disposed) onToggleNode(node.id)
     })
+    const handleDoubleClick = (event: MouseEvent): void => {
+      const topic = (event.target as Element | null)?.closest<HTMLElement>('me-tpc[data-nodeid]')
+      const raw = topic?.dataset.nodeid
+      if (raw?.startsWith('me') === true) onOpenNode(raw.slice(2))
+    }
+    mind.container.addEventListener('dblclick', handleDoubleClick)
     // 缩放：回写视图状态。
     mind.bus.addListener('scale', (scale) => {
       currentZoomRef.current = scale
@@ -147,7 +156,7 @@ export function MindMapView(props: {
       if (!disposed) onViewStateChange({ pan: { x: data.dx, y: data.dy } })
     })
 
-    mind.toCenter()
+    mind.scaleFit()
 
     const selectAndLocate = async (nodeId: string, mode: 'visible' | 'center'): Promise<CommandAckPayload> => {
       const request = ++selectionRequestRef.current
@@ -210,6 +219,7 @@ export function MindMapView(props: {
       } catch {
         // 忽略
       }
+      mind.container.removeEventListener('dblclick', handleDoubleClick)
       try {
         mind.destroy()
       } catch {
@@ -276,6 +286,7 @@ export function MindMapView(props: {
   }, [state.selectedNodeId, renderedModelKey, model.layout])
 
   // 缩放工具按钮。
+  const selected = state.selectedNodeId === null ? null : findNodeWithPath(structuredDocument.root, state.selectedNodeId)
   return (
     <div className="sdv-mindmap">
       <div className="sdv-mindmap-toolbar">
@@ -287,6 +298,26 @@ export function MindMapView(props: {
         <span className="sdv-mindmap-hint">滚轮缩放 · 拖动画布平移 · 点击节点选中</span>
       </div>
       <div ref={containerRef} className="sdv-mindmap-canvas" />
+      {selected !== null && <div className="sdv-mindmap-preview">
+        <div><strong>{selected.node.title}</strong><small>{selected.path.map(node => node.title).join(' / ')}</small><p>{summarizeNode(selected.node)}</p></div>
+        <button className="sdv-btn" type="button" onClick={() => onOpenNode(selected.node.id)}>打开正文</button>
+      </div>}
     </div>
   )
+}
+
+function findNodeWithPath(root: DocNode, id: string, path: DocNode[] = []): { node: DocNode; path: DocNode[] } | null {
+  const current = [...path, root]
+  if (root.id === id) return { node: root, path: current }
+  for (const child of root.children) {
+    const found = findNodeWithPath(child, id, current)
+    if (found !== null) return found
+  }
+  return null
+}
+
+function summarizeNode(node: DocNode): string {
+  const text = node.content.replace(/\s+/g, ' ').trim()
+  if (text === '') return node.children.length > 0 ? `包含 ${node.children.length} 个子章节` : '本节点没有正文。'
+  return text.length > 120 ? `${text.slice(0, 120)}…` : text
 }

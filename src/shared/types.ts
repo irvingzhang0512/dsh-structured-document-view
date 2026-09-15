@@ -5,7 +5,7 @@
  * 与文档，镜像到宿主；宿主 Tool 通过命令派发变更、读取镜像。
  */
 import type { NodeId, StructuredDocument } from './ir.ts'
-import type { MindMapLayout, ViewFilter, ViewName } from './view-state.ts'
+import type { MindMapLayout, ReaderMode, ViewDepths, ViewFilter, ViewName } from './view-state.ts'
 
 /** 文档大纲节点（get_view_state 返回给 Agent 的紧凑结构）。 */
 export interface OutlineNode {
@@ -25,6 +25,10 @@ export interface ViewStateWire {
   expandedNodeIds: NodeId[]
   collapsedNodeIds: NodeId[]
   depth: number | null
+  viewDepths: ViewDepths
+  readerMode: ReaderMode
+  outlineCollapsedNodeIds: NodeId[]
+  selectedNodePath?: Array<{ id: NodeId; title: string }>
   zoom: number
   pan: { x: number; y: number }
   layout: MindMapLayout
@@ -58,6 +62,9 @@ export type ViewCommand =
   | { name: 'expand_node'; node?: string }
   | { name: 'collapse_node'; node?: string }
   | { name: 'focus_node'; node?: string; mode?: 'visible' | 'center' }
+  | { name: 'open_node'; node?: string }
+  | { name: 'set_reader_mode'; mode: ReaderMode }
+  | { name: 'navigate_section'; direction: 'previous' | 'next' }
   | { name: 'set_zoom'; zoom?: number; factor?: number }
   | { name: 'fit_view' }
   | { name: 'reset_viewport' }
@@ -74,6 +81,9 @@ export const VIEW_COMMAND_NAMES: readonly string[] = [
   'expand_node',
   'collapse_node',
   'focus_node',
+  'open_node',
+  'set_reader_mode',
+  'navigate_section',
   'set_zoom',
   'fit_view',
   'reset_viewport',

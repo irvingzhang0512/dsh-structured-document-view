@@ -29,6 +29,9 @@ export const VIEW_TOOL_NAMES = [
   'expand_node',
   'collapse_node',
   'focus_node',
+  'open_node',
+  'set_reader_mode',
+  'navigate_section',
   'set_zoom',
   'fit_view',
   'reset_viewport',
@@ -230,6 +233,10 @@ const viewStateSchema: ParameterPropertySpec = {
     expandedNodeIds: { type: 'array', items: { type: 'string' }, required: true, description: '显式展开的节点列表。' },
     collapsedNodeIds: { type: 'array', items: { type: 'string' }, required: true, description: '显式收起的节点列表。' },
     depth: { type: 'integer', required: true, description: '显示层级（0 表示不限；根为第 1 层）。' },
+    viewDepths: { type: 'object', required: true, additionalProperties: false, properties: { markdown: nullableSchema({ type: 'integer' }), mindmap: nullableSchema({ type: 'integer' }), table: nullableSchema({ type: 'integer' }) }, description: '三个视图各自的显示层级。' },
+    readerMode: { type: 'string', required: true, description: 'Markdown 阅读模式：section / document。' },
+    outlineCollapsedNodeIds: { type: 'array', items: { type: 'string' }, required: true, description: '仅在大纲中收起的节点。' },
+    selectedNodePath: { type: 'array', items: { type: 'object', additionalProperties: false, properties: { id: { type: 'string' }, title: { type: 'string' } } }, description: '当前节点从文档根开始的路径。' },
     zoom: { type: 'number', required: true, description: '缩放比例。' },
     pan: { type: 'object', required: true, additionalProperties: false, properties: { x: { type: 'number' }, y: { type: 'number' } }, description: '画布位置。' },
     layout: { type: 'string', required: true, description: '思维导图布局。' },
@@ -249,6 +256,9 @@ function wireToView(wire: ViewStateWire): Record<string, unknown> {
     expandedNodeIds: wire.expandedNodeIds,
     collapsedNodeIds: wire.collapsedNodeIds,
     depth: wire.depth ?? 0,
+    viewDepths: wire.viewDepths,
+    readerMode: wire.readerMode,
+    outlineCollapsedNodeIds: wire.outlineCollapsedNodeIds,
     zoom: wire.zoom,
     pan: wire.pan,
     layout: wire.layout,
@@ -258,6 +268,7 @@ function wireToView(wire: ViewStateWire): Record<string, unknown> {
   if (wire.selectedNodeId !== undefined) view.selectedNodeId = wire.selectedNodeId
   if (wire.selectedNodeTitle !== undefined) view.selectedNodeTitle = wire.selectedNodeTitle
   if (wire.focusedNodeId !== undefined) view.focusedNodeId = wire.focusedNodeId
+  if (wire.selectedNodePath !== undefined) view.selectedNodePath = wire.selectedNodePath
   if (wire.filter !== null && wire.filter !== undefined) view.filter = wire.filter
   if (wire.document !== undefined) view.document = wire.document
   if (wire.outlineTruncated === true) view.outlineTruncated = true
@@ -273,7 +284,7 @@ export function registerViewTools(ctx: { tools: { register(tool: unknown): () =>
   disposers.push(ctx.tools.register(defineTool({
     name: 'set_view',
     description:
-      '切换视图：markdown（Markdown 视图，看完整正文）/ mindmap（思维导图视图，看结构）/ table（表格视图，看角色与属性）。'
+      '切换视图：markdown（大纲与章节阅读）/ mindmap（思维导图总览）/ table（表格查看角色与属性）。'
       + '适合「切成思维导图」「用表格看一下」「切成 Markdown」。',
     parameters: { view: viewEnum },
     output: {
@@ -377,9 +388,9 @@ export function registerViewTools(ctx: { tools: { register(tool: unknown): () =>
         const mode = name === 'focus_node' && ((args as { mode?: unknown }).mode === 'visible' || (args as { mode?: unknown }).mode === 'center')
           ? (args as { mode: 'visible' | 'center' }).mode
           : undefined
-        const command: ViewCommand = node === undefined
+        const command = (node === undefined
           ? { name, ...(mode !== undefined ? { mode } : {}) }
-          : { name, node, ...(mode !== undefined ? { mode } : {}) }
+          : { name, node, ...(mode !== undefined ? { mode } : {}) }) as ViewCommand
         const outcome = await deps.bridge.dispatch(session.sessionId, command, ackTimeoutMs)
         const ackValue = (outcome.ack?.value ?? {}) as Record<string, unknown>
         return outcomeResult(
@@ -398,6 +409,55 @@ export function registerViewTools(ctx: { tools: { register(tool: unknown): () =>
   nodeMutationTool('expand_node')
   nodeMutationTool('collapse_node')
   nodeMutationTool('focus_node')
+
+  disposers.push(ctx.tools.register(defineTool({
+    name: 'open_node',
+    description: '在 Markdown 章节阅读器中打开节点及其全部子节点，并把它设为当前节点。适合「打开第二技术路线」「看这个章节」。同名节点会返回候选，不会猜测。',
+    parameters: { node: nodeParameter },
+    output: { schema: outputWith({ ...deliveryEnvelope, nodeId: { type: 'string', required: true }, nodeTitle: { type: 'string', required: true }, currentView: { type: 'string', required: true }, readerMode: { type: 'string', required: true } }), render: (_args, value) => [{ type: 'text', text: textOf(value as never) }] },
+    execute: async (args, exec) => {
+      exec.signal.throwIfAborted()
+      const session = requireSession(exec)
+      if ('error' in session) return session.error as never
+      const node = typeof (args as { node?: unknown }).node === 'string' ? (args as { node: string }).node : undefined
+      const outcome = await deps.bridge.dispatch(session.sessionId, { name: 'open_node', ...(node === undefined ? {} : { node }) }, ackTimeoutMs)
+      const value = outcome.ack?.value ?? {}
+      return outcomeResult(outcome, '已打开章节。', '视图客户端未连接，打开章节操作已排队。', { nodeId: String(value.nodeId ?? ''), nodeTitle: String(value.nodeTitle ?? ''), currentView: 'markdown', readerMode: 'section' })
+    },
+  })))
+
+  disposers.push(ctx.tools.register(defineTool({
+    name: 'set_reader_mode',
+    description: '切换 Markdown 阅读范围。section 只看当前章节及其全部子节点；document 查看整篇并定位当前节点。适合「只看当前章节」「查看全文」。',
+    parameters: { mode: { type: 'string', enum: ['section', 'document'], description: 'section / document。' } },
+    output: { schema: outputWith({ ...deliveryEnvelope, currentView: { type: 'string', required: true }, readerMode: { type: 'string', required: true } }), render: (_args, value) => [{ type: 'text', text: textOf(value as never) }] },
+    execute: async (args, exec) => {
+      exec.signal.throwIfAborted()
+      const session = requireSession(exec)
+      if ('error' in session) return session.error as never
+      const mode = (args as { mode?: unknown }).mode
+      if (mode !== 'section' && mode !== 'document') return { ...failure('INVALID_VIEW', 'mode 必须是 section 或 document。'), delivered: false, queued: false, currentView: 'markdown', readerMode: String(mode ?? '') }
+      const outcome = await deps.bridge.dispatch(session.sessionId, { name: 'set_reader_mode', mode }, ackTimeoutMs)
+      return outcomeResult(outcome, '已切换阅读范围。', '视图客户端未连接，阅读范围操作已排队。', { currentView: 'markdown', readerMode: mode })
+    },
+  })))
+
+  disposers.push(ctx.tools.register(defineTool({
+    name: 'navigate_section',
+    description: '在当前节点的同级章节间移动。适合「上一节」「下一节」。到达本组边界时明确返回，不跨层级猜测。',
+    parameters: { direction: { type: 'string', enum: ['previous', 'next'], description: 'previous / next。' } },
+    output: { schema: outputWith({ ...deliveryEnvelope, direction: { type: 'string', required: true }, nodeId: { type: 'string', required: true }, nodeTitle: { type: 'string', required: true } }), render: (_args, value) => [{ type: 'text', text: textOf(value as never) }] },
+    execute: async (args, exec) => {
+      exec.signal.throwIfAborted()
+      const session = requireSession(exec)
+      if ('error' in session) return session.error as never
+      const direction = (args as { direction?: unknown }).direction
+      if (direction !== 'previous' && direction !== 'next') return { ...failure('INVALID_VIEW', 'direction 必须是 previous 或 next。'), delivered: false, queued: false, direction: String(direction ?? ''), nodeId: '', nodeTitle: '' }
+      const outcome = await deps.bridge.dispatch(session.sessionId, { name: 'navigate_section', direction }, ackTimeoutMs)
+      const value = outcome.ack?.value ?? {}
+      return outcomeResult(outcome, '已切换章节。', '视图客户端未连接，章节导航操作已排队。', { direction, nodeId: String(value.nodeId ?? ''), nodeTitle: String(value.nodeTitle ?? '') })
+    },
+  })))
 
   // ── 思维导图视口工具 ─────────────────────────────────────────────────
   disposers.push(ctx.tools.register(defineTool({
@@ -565,7 +625,7 @@ export function registerViewTools(ctx: { tools: { register(tool: unknown): () =>
   disposers.push(ctx.tools.register(defineTool({
     name: 'reset_view',
     description:
-      '恢复默认视图：切换回 Markdown 视图、展开全部、不限层级、默认布局、清除筛选与聚焦（保留当前选中节点）。'
+      '恢复默认视图：切换回 Markdown 章节阅读、思维导图默认两层、默认布局、清除筛选与聚焦（保留当前选中节点）。'
       + '适合「恢复默认视图」「回到初始状态」。',
     parameters: {},
     output: {
@@ -629,6 +689,7 @@ function renderViewState(value: Record<string, unknown>): string {
   lines.push(`聚焦节点: ${view.focusedNodeId !== undefined ? String(view.focusedNodeId) : '（无）'}`)
   lines.push(`展开节点: ${(view.expandedNodeIds as unknown[] | undefined)?.length ?? 0} 个 / 收起节点: ${(view.collapsedNodeIds as unknown[] | undefined)?.length ?? 0} 个`)
   lines.push(`层级: ${view.depth === 0 ? '不限' : `前 ${String(view.depth)} 层`} · 布局: ${String(view.layout ?? '?')} · 缩放: ${String(view.zoom ?? 1)}`)
+  lines.push(`阅读模式: ${String(view.readerMode ?? 'section')} · 节点路径: ${Array.isArray(view.selectedNodePath) ? view.selectedNodePath.map(item => String((item as Record<string, unknown>).title ?? '')).join(' / ') : '（无）'}`)
   lines.push(`筛选: ${view.filter !== undefined ? JSON.stringify(view.filter) : '无'}`)
   const outline = view.outline as unknown[] | undefined
   if (Array.isArray(outline)) {

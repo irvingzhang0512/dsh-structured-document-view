@@ -32,7 +32,7 @@
 │ 宿主（Node 半区）                                                   │
 │  ViewMirrorStore（每会话状态镜像） ◄── 客户端推送                    │
 │  ViewBridgeServer（命令派发 / 入队重放 / ack）                      │
-│  View Tools（15 个，读镜像 + 派发命令） ──► ctx.tools               │
+│  View Tools（17 个，读镜像 + 派发命令） ──► ctx.tools               │
 │  自注册 SKILL.md ──► ctx.skills                                     │
 └───────────────────────────────────────────────────────────────────┘
 ```
@@ -45,7 +45,7 @@
 | `src/document/` | DocumentProvider 接口、节点引用解析、Mock Provider、Document Bridge | 宿主语义 + 客户端 |
 | `src/client/` | 客户端入口、会话管理、运行时、Sidebar 适配层、三种视图、样式 | 浏览器 |
 | `src/host/` | 镜像存储、桥服务器、socket 适配、信任围栏、技能注册 | Node |
-| `src/tools/` | 15 个 View Tool | Node |
+| `src/tools/` | 17 个 View Tool | Node |
 | `skills/` | 随包发布的中文 Skill | 文档/技能 |
 | `examples/` | 三类示例文档（meeting / project / thinking） | 数据 |
 

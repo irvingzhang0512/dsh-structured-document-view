@@ -204,8 +204,10 @@ function ContentView({ runtime, state }: { runtime: ViewRuntime; state: ViewStat
       return (
         <MindMapView
           model={model}
+          document={document}
           state={state}
           onSelectNode={(nodeId) => runtime.handleUserSelectNode(nodeId)}
+          onOpenNode={(nodeId) => runtime.handleUserOpenNode(nodeId)}
           onToggleNode={(nodeId) => runtime.handleUserToggleNode(nodeId)}
           onViewStateChange={(patch) => runtime.applyViewStateChange(patch)}
           onViewportReady={(controller) => runtime.registerViewportController(controller)}

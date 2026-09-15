@@ -13,11 +13,13 @@ import {
   setDepth,
   setFilter,
   setFocusedNode,
+  setReaderMode,
   setLayout,
   setPan,
   setSelectedNode,
   setView,
   setZoom,
+  toggleOutlineNode,
 } from '../src/shared/view-state.ts'
 
 describe('view-state reducers', () => {
@@ -27,6 +29,7 @@ describe('view-state reducers', () => {
     expect(state.layout).toBe('logical')
     const next = setView(state, 'mindmap')
     expect(next.currentView).toBe('mindmap')
+    expect(next.depth).toBe(2)
     expect(next).not.toBe(state)
     // 未变化返回原引用
     expect(setView(next, 'mindmap')).toBe(next)
@@ -73,6 +76,19 @@ describe('view-state reducers', () => {
     expect(setFilter(state, null).filter).toBeNull()
   })
 
+  it('各视图层级、阅读模式和大纲折叠互相独立', () => {
+    let state = setView(createDefaultViewState(), 'mindmap')
+    state = setDepth(state, 4)
+    state = setView(state, 'markdown')
+    expect(state.depth).toBeNull()
+    expect(state.viewDepths).toEqual({ markdown: null, mindmap: 4, table: null })
+    state = setReaderMode(state, 'document')
+    state = toggleOutlineNode(state, 'node_002')
+    expect(state.readerMode).toBe('document')
+    expect(state.outlineCollapsedNodeIds).toEqual(['node_002'])
+    expect(state.collapsedNodeIds).toEqual([])
+  })
+
   it('resetView 保留选中，重置其余', () => {
     const state: ReturnType<typeof createDefaultViewState> = {
       currentView: 'table',
@@ -81,6 +97,9 @@ describe('view-state reducers', () => {
       expandedNodeIds: ['node_001'],
       collapsedNodeIds: ['node_003'],
       depth: 2,
+      viewDepths: { markdown: null, mindmap: 2, table: 2 },
+      readerMode: 'document',
+      outlineCollapsedNodeIds: ['node_002'],
       zoom: 1.4,
       pan: { x: 5, y: 9 },
       layout: 'down',
@@ -97,6 +116,9 @@ describe('view-state reducers', () => {
     expect(reset.pan).toEqual({ x: 0, y: 0 })
     expect(reset.layout).toBe('logical')
     expect(reset.filter).toBeNull()
+    expect(reset.readerMode).toBe('section')
+    expect(reset.viewDepths).toEqual({ markdown: null, mindmap: 2, table: null })
+    expect(reset.outlineCollapsedNodeIds).toEqual([])
   })
 })
 

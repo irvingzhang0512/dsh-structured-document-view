@@ -2,7 +2,7 @@
 
 # dsh-structured-document-view
 
-A DSH (DeepSeek Harness) plugin that adds a **Structured Document** page to the web sidebar on top of `dsh-better-sidebar`. It renders the current structured document in three switchable views — **Markdown**, **Mind Map**, and **Table** — and ships **15 View Tools** plus a bundled **Chinese skill**, so both agents and users can control the *view state* with natural language.
+A DSH (DeepSeek Harness) plugin that adds a **Structured Document** page to the web sidebar on top of `dsh-better-sidebar`. It renders the current structured document in three switchable views — **Markdown**, **Mind Map**, and **Table** — and ships **17 View Tools** plus a bundled **Chinese skill**, so both agents and users can control the *view state* with natural language.
 
 > View state only — never the document. Every tool and every skill intent changes *how* the document is displayed (view type, depth, layout, filter, expansion, focus, zoom, pan). The document content itself is never modified; editing belongs to the data source (`dsh-structured-document` when installed, or the built-in mock documents).
 
@@ -13,7 +13,7 @@ A DSH (DeepSeek Harness) plugin that adds a **Structured Document** page to the 
   - `mindmap` — powered by [mind-elixir](https://www.npmjs.com/package/mind-elixir) v5 (read-only): expand/collapse, click to select, wheel zoom, drag pan, focus-to-center, and three layouts (`mind` / `logical` / `down`);
   - `table` — grouped by role with property columns (respects depth and filter).
 - **View state is fully separated from the document** — `currentView / selected / focused / expanded / collapsed / depth / zoom / pan / layout / filter` is pure, immutable reducer state. It only affects *how you look*, never the document.
-- **15 View Tools** cover view switching, node navigation, layout/depth/filter controls, zoom/fit, command help, and opening the tab. Each tool has a single responsibility and returns a uniform envelope `{ ok, code, message, delivered, queued, ... }`.
+- **17 View Tools** cover view switching, section reading, node navigation, layout/depth/filter controls, zoom/fit, command help, and opening the tab. Each tool has a single responsibility and returns a uniform envelope `{ ok, code, message, delivered, queued, ... }`.
 - **Chinese skill included** — installing the plugin auto-registers the `structured-document-view` skill. It understands natural-language intents such as "switch to mind map", "show only two levels", "expand the second topic", "focus the current node", "switch to left-to-right layout", and "restore the default view".
 - **Tab opens automatically** — the Structured Document tab opens itself the first time a session becomes active; `open_view_tab` opens/activates it on demand at any time.
 - **Node IDs stay identical** — mind map node IDs *are* the document node IDs, so clicks, focus, and expansion map 1:1 to document nodes.
@@ -50,6 +50,9 @@ All tools are scoped to the calling agent's session and only mutate view state. 
 | `expand_node` | `node?` | Expand a node (explicit expansion can exceed the depth limit) |
 | `collapse_node` | `node?` | Collapse a node's subtree |
 | `focus_node` | `node?` | Focus a node (center it and select it) |
+| `open_node` | `node?` | Open a node and all descendants in the Markdown section reader |
+| `set_reader_mode` | `mode`: `section` \| `document` | Read the current section or the whole document |
+| `navigate_section` | `direction`: `previous` \| `next` | Move between sibling sections |
 | `set_zoom` | `zoom?` / `factor?` | Set or adjust mind-map zoom |
 | `fit_view` | — | Fit currently visible content |
 | `reset_viewport` | — | Reset zoom and center the root |

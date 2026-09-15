@@ -56,6 +56,9 @@ function makeWire(): ViewStateWire {
     expandedNodeIds: [],
     collapsedNodeIds: [],
     depth: null,
+    viewDepths: { markdown: null, mindmap: 2, table: null },
+    readerMode: 'section',
+    outlineCollapsedNodeIds: [],
     zoom: 1,
     pan: { x: 0, y: 0 },
     layout: 'mind',
@@ -117,6 +120,18 @@ describe('registerViewTools', () => {
     expect(result.queued).toBe(false)
     expect(result.currentView).toBe('mindmap')
     expect(dispatch).toHaveBeenCalledWith('s1', { name: 'set_view', view: 'mindmap' }, undefined)
+  })
+
+  it('章节阅读工具映射到独立命令', async () => {
+    const ctx = makeCtx()
+    const { deps, dispatch } = makeBridge()
+    registerViewTools(ctx as never, deps as never)
+    await runTool(ctx.registered.find(t => t.name === 'open_node')!, { node: '议题1' })
+    expect(dispatch).toHaveBeenLastCalledWith('s1', { name: 'open_node', node: '议题1' }, undefined)
+    await runTool(ctx.registered.find(t => t.name === 'set_reader_mode')!, { mode: 'document' })
+    expect(dispatch).toHaveBeenLastCalledWith('s1', { name: 'set_reader_mode', mode: 'document' }, undefined)
+    await runTool(ctx.registered.find(t => t.name === 'navigate_section')!, { direction: 'next' })
+    expect(dispatch).toHaveBeenLastCalledWith('s1', { name: 'navigate_section', direction: 'next' }, undefined)
   })
 
   it('set_view：非法视图被 schema 拒绝（ToolArgsError）', async () => {

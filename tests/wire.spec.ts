@@ -26,6 +26,9 @@ function makeWire(overrides: Partial<ViewStateWire> = {}): ViewStateWire {
     expandedNodeIds: ['node_001'],
     collapsedNodeIds: [],
     depth: null,
+    viewDepths: { markdown: null, mindmap: 2, table: null },
+    readerMode: 'section',
+    outlineCollapsedNodeIds: [],
     zoom: 1,
     pan: { x: 0, y: 0 },
     layout: 'mind',
@@ -45,6 +48,9 @@ describe('parseCommand', () => {
     expect(parseCommand({ name: 'set_depth', depth: 0 })).toEqual({ name: 'set_depth', depth: 0 })
     expect(parseCommand({ name: 'set_layout', layout: 'down' })).toEqual({ name: 'set_layout', layout: 'down' })
     expect(parseCommand({ name: 'focus_node', mode: 'visible' })).toEqual({ name: 'focus_node', mode: 'visible' })
+    expect(parseCommand({ name: 'open_node', node: '第二技术路线' })).toEqual({ name: 'open_node', node: '第二技术路线' })
+    expect(parseCommand({ name: 'set_reader_mode', mode: 'document' })).toEqual({ name: 'set_reader_mode', mode: 'document' })
+    expect(parseCommand({ name: 'navigate_section', direction: 'next' })).toEqual({ name: 'navigate_section', direction: 'next' })
     expect(parseCommand({ name: 'set_zoom', zoom: 0.8 })).toEqual({ name: 'set_zoom', zoom: 0.8 })
     expect(parseCommand({ name: 'set_zoom', factor: 1.25 })).toEqual({ name: 'set_zoom', factor: 1.25 })
     expect(parseCommand({ name: 'fit_view' })).toEqual({ name: 'fit_view' })
@@ -64,6 +70,8 @@ describe('parseCommand', () => {
     expect(() => parseCommand({ name: 'set_depth', depth: 1.5 })).toThrow(WireError)
     expect(() => parseCommand({ name: 'set_depth', depth: -1 })).toThrow(WireError)
     expect(() => parseCommand({ name: 'focus_node', mode: 'nearby' })).toThrow(WireError)
+    expect(() => parseCommand({ name: 'set_reader_mode', mode: 'page' })).toThrow(WireError)
+    expect(() => parseCommand({ name: 'navigate_section', direction: 'down' })).toThrow(WireError)
     expect(() => parseCommand({ name: 'set_zoom' })).toThrow(WireError)
     expect(() => parseCommand({ name: 'set_zoom', zoom: 1, factor: 2 })).toThrow(WireError)
     expect(() => parseCommand({ name: 'set_zoom', zoom: 0.2 })).toThrow(WireError)
@@ -88,6 +96,8 @@ describe('parseClientMessage', () => {
       focusedNodeId: 'node_002',
       filter: { role: 'problem' },
       depth: 3,
+      readerMode: 'document',
+      selectedNodePath: [{ id: 'node_001', title: '根' }, { id: 'node_003', title: '热红外验证' }],
       document: { id: 'd1', title: '第二技术路线', profile: 'thinking', revision: 2, providerId: 'mock', providerName: 'Mock' },
       outline: [{ id: 'node_001', title: '根', role: 'note', children: [] }],
     })
@@ -97,6 +107,8 @@ describe('parseClientMessage', () => {
       expect(parsed.state.sessionId).toBe('s1')
       expect(parsed.state.selectedNodeId).toBe('node_003')
       expect(parsed.state.depth).toBe(3)
+      expect(parsed.state.readerMode).toBe('document')
+      expect(parsed.state.selectedNodePath?.[1]?.id).toBe('node_003')
       expect(parsed.state.document?.profile).toBe('thinking')
       expect(parsed.state.outline[0]!.id).toBe('node_001')
     }

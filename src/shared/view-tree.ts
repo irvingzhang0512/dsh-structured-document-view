@@ -93,6 +93,16 @@ export function buildViewTree(
   return rootTree
 }
 
+/** 为指定视图计算可见树，避免一个视图的层级设置污染另一个视图。 */
+export function buildViewTreeFor(
+  document: StructuredDocument,
+  state: ViewState,
+  view: ViewState['currentView'],
+  options: { ignoreCollapse?: boolean } = {},
+): ViewTreeNode {
+  return buildViewTree(document, { ...state, depth: state.viewDepths[view] }, options)
+}
+
 /** 以先序扁平化视图树（返回所有节点的引用，含折叠隐藏的节点本身）。 */
 export function flattenViewTree(root: ViewTreeNode): ViewTreeNode[] {
   const results: ViewTreeNode[] = []

@@ -10,7 +10,7 @@
  * 纯函数，可在 Node 测试中直接验证。
  */
 import type { StructuredDocument } from '../../shared/ir.ts'
-import { buildViewTree, flattenViewTree } from '../../shared/view-tree.ts'
+import { buildViewTreeFor, flattenViewTree } from '../../shared/view-tree.ts'
 import type { ViewState } from '../../shared/view-state.ts'
 import { nodeDisplayTitle, summarize } from './markdown.ts'
 
@@ -75,7 +75,7 @@ function propertyDisplay(value: string | number | boolean): string | number | bo
 
 /** 计算表格数据。 */
 export function toTableViewModel(document: StructuredDocument, state: ViewState): TableViewModel {
-  const tree = buildViewTree(document, state, { ignoreCollapse: true })
+  const tree = buildViewTreeFor(document, state, 'table', { ignoreCollapse: true })
   const nodes = flattenViewTree(tree).filter(node => node.visible)
 
   const rows: TableRow[] = nodes.map(node => {
