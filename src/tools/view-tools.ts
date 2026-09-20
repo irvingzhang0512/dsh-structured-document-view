@@ -209,10 +209,10 @@ const outlineNodeSchema: ParameterPropertySpec = {
 const filterObjectSchema: ParameterPropertySpec = {
   type: 'object',
   additionalProperties: false,
-  description: '筛选条件；省略 filter 或传空对象 {} 表示清除筛选。role 与 properties 可组合（满足其一即显示）。',
+  description: '筛选条件；省略 filter 或传空对象 {} 表示清除筛选。role 与 properties 之间、properties 各键之间均为 AND(全部条件同时满足才显示)。',
   properties: {
-    role: { type: 'string', description: '按角色筛选（如 task / risk / action_item / idea）。' },
-    properties: { type: 'object', additionalProperties: false, description: '按属性筛选（如 { status: "进行中" }，键值都要匹配）。' },
+    role: { type: 'string', description: '按角色筛选(如 task / risk / action_item / idea)。' },
+    properties: { type: 'object', additionalProperties: false, description: '按属性筛选(如 { owner: "张三", status: "进行中" }，键值都要匹配)。' },
   },
 }
 
@@ -583,9 +583,9 @@ export function registerViewTools(ctx: { tools: { register(tool: unknown): () =>
   disposers.push(ctx.tools.register(defineTool({
     name: 'set_filter',
     description:
-      '设置筛选条件（展示过滤，不修改文档）：按角色（role）或属性（properties，键值都要匹配）筛选可见节点。'
+      '设置筛选条件（展示过滤，不修改文档）：按角色（role）和属性（properties）筛选可见节点，各条件之间为 AND(全部满足才显示，如「只看张三的进行中任务」→ { role: "task", properties: { owner: "张三", status: "进行中" } })。'
       + '省略 filter 或传空对象 {} 表示清除筛选。树形展示时"自身不匹配但后代匹配"的祖先会保留。'
-      + '适合「只看任务」「只看风险」「清除筛选」。',
+      + '适合「只看任务」「只看风险」「只看进行中的任务」「清除筛选」。',
     parameters: { filter: filterObjectSchema },
     output: {
       schema: outputWith({

@@ -161,9 +161,21 @@ describe('nodeMatchesFilter', () => {
     expect(nodeMatchesFilter(node, { role: 'risk' })).toBe(false)
   })
 
-  it('属性匹配（任一属性命中即匹配）', () => {
+  it('属性匹配（全部键值 AND）', () => {
     expect(nodeMatchesFilter(node, { properties: { status: '进行中' } })).toBe(true)
     expect(nodeMatchesFilter(node, { properties: { owner: '李四' } })).toBe(false)
-    expect(nodeMatchesFilter(node, { role: 'risk', properties: { owner: '张三' } })).toBe(true)
+    // role 与 properties 之间也是 AND:角色不匹配即不显示
+    expect(nodeMatchesFilter(node, { role: 'risk', properties: { owner: '张三' } })).toBe(false)
+    expect(nodeMatchesFilter(node, { role: 'task', properties: { owner: '张三' } })).toBe(true)
+  })
+
+  it('多属性 AND 组合（如「张三的进行中任务」）', () => {
+    expect(nodeMatchesFilter(node, { role: 'task', properties: { owner: '张三', status: '进行中' } })).toBe(true)
+    // 任一键不匹配即不显示
+    expect(nodeMatchesFilter(node, { role: 'task', properties: { owner: '张三', status: '已完成' } })).toBe(false)
+    expect(nodeMatchesFilter(node, { role: 'task', properties: { owner: '李四', status: '进行中' } })).toBe(false)
+    // 节点缺少某键即不显示
+    const bare = { role: 'task', properties: { status: '进行中' } }
+    expect(nodeMatchesFilter(bare, { role: 'task', properties: { status: '进行中', level: '高' } })).toBe(false)
   })
 })

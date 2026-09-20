@@ -33,7 +33,7 @@ description: >-
 | `get_view_help` | 返回简单或组合中文指令 | 我可以怎么说；有哪些语音指令 |
 | `set_depth` | 只显示前 N 层（0 或 null = 不限） | 只显示两层；只显示三层 |
 | `set_layout` | 思维导图布局：`mind` / `logical` / `down` | 改成从左到右布局（logical） |
-| `set_filter` | 按角色筛选（如 `action_item`、`task`、`problem`）；省略 filter 或传空对象 `{}` 表示清除 | 只看待办事项；只看问题；清除筛选 |
+| `set_filter` | 按角色与属性筛选，条件之间为 AND（如 `{ role: "task", properties: { owner: "张三", status: "进行中" } }`）；省略 filter 或传空对象 `{}` 表示清除 | 只看待办事项；只看问题；只看进行中的任务；清除筛选 |
 | `reset_view` | 恢复默认视图（Markdown、不限层级、清除筛选） | 恢复默认视图 |
 
 ## 关键约定
@@ -71,6 +71,9 @@ description: >-
 - 「改成从左到右布局」 → `set_layout(layout="logical")`
 - 「恢复默认视图」 → `reset_view()`
 - 「只看待办事项」 → `set_filter(role="action_item")`（会议文档）或 `set_filter(role="task")`（项目文档）
+- 「只看进行中的任务」 → `set_filter(filter={ role: "task", properties: { status: "进行中" } })`（角色与属性 AND 组合）
+- 「只看张三的任务」 → `set_filter(filter={ role: "task", properties: { owner: "张三" } })`
+- 「只看风险/有风险的」 → `set_filter(role="risk")`；再加属性则 `properties: { status: "有风险" }`
 - 「取消筛选」 → `set_filter({})`（空对象 = 清除筛选）
 
 ## 执行顺序建议

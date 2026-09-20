@@ -27,6 +27,7 @@
 | 改成从左到右布局 | `set_layout(layout="logical")` |
 | 恢复默认视图 | `reset_view()` |
 | 只看待办事项 | `set_filter(filter={role:"action_item"})` / `set_filter(filter={role:"task"})` |
+| 只看进行中的任务 | `set_filter(filter={role:"task",properties:{status:"进行中"}})`（AND 组合） |
 | 取消筛选 | `set_filter(filter={})`（空对象 = 清除） |
 
 Skill 还约定：先 `get_view_state` 拿 Node ID 再操作；所有工具只改视图不

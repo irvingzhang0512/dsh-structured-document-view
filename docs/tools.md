@@ -25,7 +25,7 @@
 | `get_view_help` | `level?` | 获取简单或组合中文说法 | 我可以怎么说 |
 | `set_depth` | `depth: 0-20` | 只显示前 N 层（0 = 不限） | 只显示两层 |
 | `set_layout` | `layout: mind\|logical\|down` | 思维导图布局 | 改成从左到右布局 |
-| `set_filter` | `filter?` | 按角色/属性筛选；空对象 `{}` 或省略 = 清除 | 只看待办事项；清除筛选 |
+| `set_filter` | `filter?` | 按角色与属性筛选（各条件 AND）；空对象 `{}` 或省略 = 清除 | 只看待办事项；只看进行中的任务；清除筛选 |
 | `reset_view` | — | 恢复默认视图（保留当前选中） | 恢复默认视图 |
 
 ## 节点参数（expand / collapse / focus 的 `node`）

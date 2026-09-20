@@ -7,7 +7,8 @@
    除非处于显式展开链上（`expanded_node_ids` 中的节点及其后代）。
 2. **收起 / 展开**（`collapsed_node_ids` / `expanded_node_ids`）：显式收起
    隐藏整个子树；显式展开突破层级限制。
-3. **筛选**（`filter`）：自身匹配（角色或属性）的节点保留；"自身不匹配但
+3. **筛选**（`filter`）：自身匹配（角色与属性按 AND 组合：role 若指定必须相等，
+   properties 的每个键值都必须相等）的节点保留；"自身不匹配但
    后代匹配"的祖先保留（树形筛选标准做法）；根恒可见。
 
 ## 1. Markdown 视图（markdown-view.tsx + markdown-render.tsx）

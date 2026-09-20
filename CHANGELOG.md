@@ -3,6 +3,11 @@
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## Unreleased
+
+- `set_filter` 筛选语义修正为 AND：role 与 properties 之间、properties 各键之间全部同时满足才显示（原为 OR，与「键值都要匹配」的描述矛盾）。支撑「只看张三的进行中任务」这类组合筛选。
+- 指令目录新增项目管理常用语：「只看任务」「只看风险」「只看进行中的任务」「只看进行中的策略」「清除筛选」。
+
 ## [0.2.0] - 2026-09
 
 ### Added（与 dsh-structured-document 配合）

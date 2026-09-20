@@ -263,15 +263,21 @@ export function isCollapsed(
   return isDepthLimited(level, state.depth, underExplicitExpand || explicitlyExpanded)
 }
 
-/** 判断一个节点是否满足当前筛选条件（自身匹配；树形祖先由调用方处理）。 */
+/**
+ * 判断一个节点是否满足当前筛选条件（自身匹配；树形祖先由调用方处理）。
+ *
+ * 语义为 AND 组合：role（若指定）必须匹配，且 properties 的每个键值都必须
+ * 匹配（全部条件同时满足才显示）。这样「只看张三的进行中任务」可用
+ * { role: 'task', properties: { owner: '张三', status: '进行中' } } 表达。
+ */
 export function nodeMatchesFilter(node: { role: string; properties: NodeProperties }, filter: ViewFilter | null): boolean {
   if (filter === null) return true
-  if (filter.role !== undefined && filter.role !== '' && node.role === filter.role) return true
+  if (filter.role !== undefined && filter.role !== '' && node.role !== filter.role) return false
   const props = filter.properties
   if (props !== undefined) {
     for (const [key, value] of Object.entries(props)) {
-      if (node.properties[key] === value) return true
+      if (node.properties[key] !== value) return false
     }
   }
-  return false
+  return true
 }
