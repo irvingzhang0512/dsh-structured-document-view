@@ -9,7 +9,7 @@
 import type { SidebarState, SidebarTab } from 'dsh-better-sidebar/client/service'
 
 /** 递归分栏树的叶子形状（服务未重新导出，结构取型）。 */
-type SplitNode = SidebarState['splits']
+type SplitNode = SidebarState['bottomSplits']
 type SidebarLeaf = Extract<SplitNode, { kind: 'leaf' }>
 type SidebarSplit = Extract<SplitNode, { kind: 'split' }>
 
@@ -30,7 +30,7 @@ function leavesOf(node: SplitNode): SidebarLeaf[] {
 
 /** 右侧面板与底部面板的全部叶子。 */
 function allLeaves(state: SidebarState): SidebarLeaf[] {
-  return [...leavesOf(state.splits), ...leavesOf(state.bottomSplits)]
+  return leavesOf(state.bottomSplits)
 }
 
 /** 当前活动的编辑器文件路径；无则 null。 */
