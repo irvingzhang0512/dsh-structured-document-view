@@ -2,7 +2,9 @@
  * 视图桥客户端（浏览器侧）：连接宿主 `/structured-document-view/ws`，
  * 接收 ViewCommand、宿主文档/选中推送，回执执行结果、推送状态镜像。
  *
- * 仅连接当前活动会话；连接断开后按退避策略重连（拒绝的端点不会无限重试）。
+ * 仅连接当前活动会话；连接断开后按指数退避自动重连（2s 起，翻倍至 30s
+ * 封顶，不设次数上限）——DSH 重启 / 插件热重载 / 网络抖动后只要页面还
+ * 开着，连接最终自愈，避免客户端永久停留在 Mock 数据源。
  */
 import type { BridgeClientHandlerSet, ClientToHostMessage, ViewStateWire } from '../shared/types.ts'
 import { encodeAck, encodeClientCurrentFile, encodeClientSelectNode, encodeClientState, encodeHello, parseHostMessage } from '../shared/wire.ts'
@@ -10,9 +12,9 @@ import { encodeAck, encodeClientCurrentFile, encodeClientSelectNode, encodeClien
 /** 桥升级路径（必须与宿主半区一致）。 */
 const BRIDGE_PATH = '/structured-document-view/ws'
 
-/** 重连失败上限与间隔。 */
-const RECONNECT_FAILURE_LIMIT = 8
-const RECONNECT_DELAY_MS = 2000
+/** 重连退避：起始间隔、倍率与封顶间隔（不设次数上限，靠封顶限流）。 */
+const RECONNECT_DELAY_BASE_MS = 2000
+const RECONNECT_DELAY_MAX_MS = 30000
 
 /** 桥客户端处理器。 */
 export type BridgeClientHandlers = BridgeClientHandlerSet
@@ -30,9 +32,9 @@ export class ViewBridgeClient {
     private readonly handlers: BridgeClientHandlers,
   ) {}
 
-  /** 开始连接（幂等）。 */
+  /** 开始连接（幂等；退避等待期不提前重试，由退避定时器接管）。 */
   connect(): void {
-    if (this.closed || this.socket !== null) return
+    if (this.closed || this.socket !== null || this.retryTimer !== undefined) return
     this.open()
   }
 
@@ -75,7 +77,7 @@ export class ViewBridgeClient {
   }
 
   private open(): void {
-    if (this.closed) return
+    if (this.closed || this.socket !== null) return
     const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const url = `${proto}//${window.location.host}${BRIDGE_PATH}?sessionId=${encodeURIComponent(this.sessionId)}`
     let socket: WebSocket
@@ -130,12 +132,12 @@ export class ViewBridgeClient {
 
   private scheduleReconnect(): void {
     if (this.closed || this.retryTimer !== undefined) return
+    const delay = Math.min(RECONNECT_DELAY_BASE_MS * 2 ** this.failures, RECONNECT_DELAY_MAX_MS)
     this.failures += 1
-    if (this.failures > RECONNECT_FAILURE_LIMIT) return
     this.retryTimer = window.setTimeout(() => {
       this.retryTimer = undefined
       this.open()
-    }, RECONNECT_DELAY_MS)
+    }, delay)
   }
 
   /** 供宿主判断（测试用）。 */
