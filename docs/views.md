@@ -23,7 +23,7 @@
 - 渲染器 `markdown-render.tsx` 是**自包含轻量实现**（D3）：标题 / 段落 /
   无序/有序列表 / 任务项 / 行内代码 / 粗体 / 斜体 / 链接 / 代码块 / 表格 /
   分隔线。HTML 一律按文本展示（安全）。
-- 遵守视图树：depth、filter、collapsed 全部生效。
+- 当前章节阅读器直接读取文档节点，不按导图的 depth／filter／collapsed 截断正文；大纲折叠与搜索独立控制导航。上述 Markdown 适配层的树形投影规则不等于章节阅读器正文的可见性规则。
 
 ## 2. 思维导图视图（mindmap-view.tsx + adapters/mindmap.ts）
 

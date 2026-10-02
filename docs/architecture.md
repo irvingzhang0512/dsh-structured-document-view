@@ -186,7 +186,7 @@ dsh-structured-document（宿主）                dsh-structured-document-view
 │ WorkspaceRegistry（每会话）     │  ctx.       │ 宿主半区                         │
 │  SessionWorkspace             │──provide──▶│  ctx.get('structuredDocument')   │
 │   ├ bindFile(解析 Markdown)    │             │  HostDocumentIntegrator         │
-│   ├ 14 个工具（改文档）         │◀──命令──────│   ├ 订阅工作区变化 → document/    │
+│   ├ 17 个工具（改文档）         │◀──命令──────│   ├ 订阅工作区变化 → document/    │
 │   ├ selectNode/selectedNode    │             │  │   selection 桥消息             │
 │   └ 变化事件（bound/document/  │──快照推送──▶│   └ select-node/current-file 上行│
 │     selection/unbound）        │             │  ViewBridgeServer                │
@@ -201,7 +201,7 @@ dsh-structured-document（宿主）                dsh-structured-document-view
 要点（见 D11/D12）：
 - **软依赖**：宿主 `ctx.get` 探测，不声明 inject；客户端收到宿主文档推送才
   切数据源，未收到则用 Mock（两个插件各自独立可用，装齐自动配合）；
-- **单向真源**：文档只能被 dsh-structured-document 修改（其 14 个工具 /
+- **单向真源**：文档只能被 dsh-structured-document 修改（其 17 个工具 /
   Skill），本插件的视图工具只改 View State；"选中"双向同步；
 - **当前文件联动**：浏览器打开 `.md` 文件 → setCurrentFile → 懒绑定 /
   重绑（解析为 IR 并回推视图）。

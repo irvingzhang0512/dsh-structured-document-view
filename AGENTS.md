@@ -1,12 +1,23 @@
 # AGENTS.md
 
+## 开发入口与文档分工
+
+先返回根维护目录，读取 [根 AGENTS](../AGENTS.md)、[维护规范](../docs/MAINTENANCE.md) 和开发 Skill；本仓库的特殊约束仍适用。统一流程见 [文档驱动开发](../docs/DOC-DRIVEN-DEVELOPMENT.md)，当前可编辑规格见 [docs/SPEC.md](docs/SPEC.md)。
+
+- 功能新增／修改：读取规格及其差异，先改预期和验收条件，涉及接口／配置／存储时先同步技术契约，再改源码并验证。自然语言需求也先落入规格。
+- Bug：按已有预期复现并直接查看源码、日志和测试，修复回归；预期未变无需改规格，遗漏／歧义补规格，产品规则变化部分按功能流程。不得改规格把 Bug 解释为正确行为。
+- 原始需求保持只读历史来源；实现状态和验证结果分开记录，冲突保留证据并标待确认。README 是入口，架构／配置／接口文档维护技术契约。
+- 纯文档任务检查编号、状态、链接与源码／测试引用，记录未执行的验证；无需运行下面的代码测试／构建或重装。代码改动仍遵循本仓库验证要求。
+- 纯文档变更不提高包版本，独立中文 Angular docs 提交，保持当前实际分支；根仓库同步完整提交锁。安装快照由脚本检查，未变保留，不自动推送。
+
+
 本文件是 **dsh-structured-document-view** 项目的智能体协作约定（Agent 工作指引），
 面向在此仓库中开发、评审、维护代码的 AI Agent 与人类协作者。
 
 ## 项目概览
 
 DSH（DeepSeek Harness）插件：基于 dsh-better-sidebar 展示**结构化文档**的
-多视图侧边栏页（Markdown / 思维导图 / 表格），配套 15 个 **View Tool** 与
+多视图侧边栏页（Markdown / 思维导图 / 表格），配套 17 个 **View Tool** 与
 可导入的**中文 Skill**，让 Agent 与用户用自然语言控制"视图状态"。
 
 - 视图状态与文档严格分离：视图状态是纯 reducer 的不可变状态，只影响"怎么看"，绝不修改文档；
@@ -26,7 +37,7 @@ src/client/   浏览器端：视图（markdown/mindmap/table）、适配器、�
 src/document/ 文档侧：Document Provider、Document Bridge、Mock Provider
 src/host/     宿主侧：bridge-server、document-integrator、socket、trust-fence、skill-registration
 src/shared/   共享类型与纯函数：IR、view-state、view-tree、wire 协议
-src/tools/    View Tool 实现（15 个，见 docs/tools.md）
+src/tools/    View Tool 实现（17 个，见 docs/tools.md）
 skills/       中文 Skill（SKILL.md）
 docs/         架构与设计文档（architecture / views / tools / skill / document-provider / sidebar-integration / usage）
 tests/        Vitest 测试
@@ -98,5 +109,5 @@ chore: 初始化 git 仓库并提交首个版本
 ### 其他约定
 
 - 保持提交原子化：一次提交只做一件事，便于 `git revert` 与评审；
-- 提交前运行 `npm run typecheck` 与 `npm test` 确认通过；
+- 代码提交前运行 `npm run typecheck` 与 `npm test` 确认通过；
 - 版本号变更与 `CHANGELOG.md` 更新放在发布相关的提交中。

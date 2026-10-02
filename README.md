@@ -1,5 +1,8 @@
 **English** | [简体中文](README.zh-CN.md)
 
+当前功能与验收以 [docs/SPEC.md](docs/SPEC.md) 为入口；原始需求保留为历史来源，技术契约见规格内的文档索引。功能任务先改规格再实现，Bug 按已有预期查源码修复。
+
+
 # dsh-structured-document-view
 
 A DSH (DeepSeek Harness) plugin that adds a **Structured Document** page to the web sidebar on top of `dsh-better-sidebar`. It renders the current structured document in three switchable views — **Markdown**, **Mind Map**, and **Table** — and ships **17 View Tools** plus a bundled **Chinese skill**, so both agents and users can control the *view state* with natural language.
