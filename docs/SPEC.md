@@ -102,7 +102,7 @@
   - A5：连接断开后画面与数据源保留，界面标注重试中。
   - A6：安装内核且有绑定文档时行为与本变更前一致（回归）。
 - 实现依据：[../src/client/runtime.ts](../src/client/runtime.ts)、[../src/client/views/tab-view.tsx](../src/client/views/tab-view.tsx)、[../src/document/empty-provider.ts](../src/document/empty-provider.ts)、[../src/client/plugin-style.ts](../src/client/plugin-style.ts)。
-- 验证记录：2026-10-10 实现并运行验证——`npm run typecheck`、`npm test`（20 文件 / 149 用例）、`npm run build` 三绿；新增/更新用例：[../tests/host-backed-provider.spec.ts](../tests/host-backed-provider.spec.ts)（四态迁移、`SOURCE_NOT_READY`、真实文档优先）、[../tests/tab-view.spec.tsx](../tests/tab-view.spec.tsx)（首帧不出现示例数据、mock 标识、host 空状态）、[../tests/skill.spec.ts](../tests/skill.spec.ts)（E2E 走 hello-ack）、[../tests/viewport-runtime.spec.ts](../tests/viewport-runtime.spec.ts)。GUI 回归尚未执行（见待办）。
+- 验证记录：2026-10-10 实现并运行验证——`npm run typecheck`、`npm test`（21 文件 / 150 用例）、`npm run build` 三绿；新增/更新用例：[../tests/host-backed-provider.spec.ts](../tests/host-backed-provider.spec.ts)（四态迁移、`SOURCE_NOT_READY`、真实文档优先）、[../tests/tab-view.spec.tsx](../tests/tab-view.spec.tsx)（首帧不出现示例数据、mock 标识、host 空状态）、[../tests/client-bundle.spec.ts](../tests/client-bundle.spec.ts)（构建产物以包名注册并成功挂载）、[../tests/skill.spec.ts](../tests/skill.spec.ts)（E2E 走 hello-ack）、[../tests/viewport-runtime.spec.ts](../tests/viewport-runtime.spec.ts)。GUI 回归尚未执行（见待办）。
 
 ## 差异与验证待办
 
