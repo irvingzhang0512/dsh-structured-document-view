@@ -30,6 +30,29 @@ interface DocumentProvider {
 可得。真源变异步时只需把方法改 Promise，工具与视图不感知（DocumentBridge
 是异步接缝）。
 
+## 数据源状态机（F010，待实现）
+
+运行时（`ViewRuntime`）**不再以 Mock 作为初始数据源**，而是显式三态：
+
+| 状态 | 进入条件 | 数据源 | 界面表现 |
+| --- | --- | --- | --- |
+| `connecting` | 客户端启动后尚未收到 `hello-ack`（含重连中） | `EmptyDocumentProvider`（文档恒为 null） | 内容区显示"正在连接视图桥…"；隐藏示例文档切换器；文档类命令返回 `SOURCE_NOT_READY` |
+| `host` | `hello-ack.capabilities.structuredDocument === true` | `HostBackedDocumentProvider` | 未绑定时显示空状态（"当前没有可展示的文档。"／"无文档"） |
+| `mock` | `hello-ack.capabilities.structuredDocument === false` | `MockDocumentProvider` | 内置示例数据 + 显式"示例数据"标识；文档切换器可见 |
+
+规则：
+
+- **未握手 ≠ 无内核**：只有宿主明确声明 `false` 才允许展示示例数据；
+  连接断开保留当前数据源与画面，仅标注重试中，不回退为示例数据。
+- 状态只前进不回落（`connecting → host | mock`）；`host` 与 `mock` 之间不互换。
+- `isHostMode()` 收敛为 `source === 'host'`，供既有调用与测试兼容。
+
+## EmptyDocumentProvider（src/document/empty-provider.ts，拟新增）
+
+`DocumentProvider` 的空实现：`getDocument()` / `getSelectedNode()` 恒返回
+`null`，`selectNode` 无副作用，零订阅。它只是 `connecting` 阶段的占位数据源，
+使运行时的 bridge、命令与界面代码无需判空分支。
+
 ## MockDocumentProvider（src/document/mock-provider.ts）
 
 三份内置示例数据（`examples/{meeting,project,thinking}.json`）扮演真源，
@@ -64,11 +87,14 @@ bound/document/selection/unbound）。本插件的配合方式：
   View 桥推送到浏览器；客户端 `select-node` / `current-file` 上行消息
   反写回服务。
 - **浏览器端**：`HostBackedDocumentProvider`（实现本接口）从宿主推送的
-  文档镜像提供数据；收到第一个宿主推送即从 Mock 切换（`ViewRuntime`
-  换 DocumentBridge，渲染/工具/技能零改动）。
+  文档镜像提供数据；客户端收到 `hello-ack` 声明 `structuredDocument: true`
+  即切到宿主源（`ViewRuntime` 换 DocumentBridge，渲染/工具/技能零改动）；
+  未收到 hello-ack 前处于 `connecting` 空数据源，不展示示例数据。
 - **当前文件联动**：better-sidebar 快照 → 活动编辑器文件（`.md`）→
   `setCurrentFile` → 懒绑定 / 按需重绑（解析 Markdown 为 IR）。
 
-服务缺失时集成层不激活，视图插件回退 Mock 数据源（独立可用）。
+服务缺失时集成层不激活：客户端收到 `hello-ack` 明确 `structuredDocument: false`
+后才进入 `mock`（内置示例数据 + 显式标识，独立可用）；未握手则停在
+`connecting` 空状态，绝不默认展示示例数据（见 F010）。
 dsh-structured-document 侧的改动最小且向后兼容：SessionWorkspace 增加
 变化事件、注册服务、接线 InMemoryCurrentFileStore（其 TODO 预留的接缝）。

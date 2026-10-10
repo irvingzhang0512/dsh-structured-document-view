@@ -20,7 +20,7 @@
 │      │                                                             │
 │      ▼                                                             │
 │  ViewRuntime（每会话一个）                                          │
-│      ├── DocumentBridge ── DocumentProvider（当前：Mock）           │
+│      ├── DocumentBridge ── DocumentProvider（见 D13）              │
 │      ├── ViewStateStore（权威视图状态，纯 reducer）                 │
 │      └── 命令执行（set_view / expand_node / ...）                  │
 │      │                                                             │
@@ -42,7 +42,7 @@
 | 目录 | 内容 | 运行环境 |
 | --- | --- | --- |
 | `src/shared/` | IR 类型、视图状态 reducer、视图树、wire 编解码、共享类型 | 宿主 + 客户端 |
-| `src/document/` | DocumentProvider 接口、节点引用解析、Mock Provider、Document Bridge | 宿主语义 + 客户端 |
+| `src/document/` | DocumentProvider 接口、空数据源（拟新增）、节点引用解析、Mock Provider、Document Bridge | 宿主语义 + 客户端 |
 | `src/client/` | 客户端入口、会话管理、运行时、Sidebar 适配层、三种视图、样式 | 浏览器 |
 | `src/host/` | 镜像存储、桥服务器、socket 适配、信任围栏、技能注册 | Node |
 | `src/tools/` | 17 个 View Tool | Node |
@@ -88,12 +88,13 @@ dsh-better-sidebar-controller 的成熟模式，避免宿主/客户端双写竞�
 "只显示两层，然后展开第二个议题"这类组合指令生效的关键。三种视图（视图树）
 对层级解释完全一致。
 
-### D6 Mock 默认文档 = thinking，UI 提供文档切换
+### D6 Mock 默认文档 = thinking，UI 提供文档切换（仅 `mock` 状态）
 
-默认加载 `thinking`（思路整理）；Toolbar 的文档下拉可在三份示例间切换
-（`MockDocumentProvider.setActiveDocument`，Mock 专属能力）。切换即清理选中
-（旧文档节点在新文档中无意义）。每个 Provider 实例持有**独立文档副本**，
-`mockMutate` 的变更不跨实例泄漏。
+只在数据源状态为 `mock`（宿主明确声明无文档内核）时加载 `thinking`（思路整理）；
+Toolbar 的文档下拉可在三份示例间切换（`MockDocumentProvider.setActiveDocument`，
+Mock 专属能力）。切换即清理选中（旧文档节点在新文档中无意义）。每个 Provider
+实例持有**独立文档副本**，`mockMutate` 的变更不跨实例泄漏。`mock` 状态的边界
+与标注要求见 D13。
 
 ### D7 拖拽禁用；moveNode 事件契约定义为未来扩展
 
@@ -138,10 +139,11 @@ sec-fetch-site 非同站 + origin 主机名校验），拒绝直接 destroy。
   推 `document` / `selection` 桥消息 → 浏览器 `HostBackedDocumentProvider`
   更新镜像（运行时从 Mock 切到宿主源）；用户点节点 → `select-node` 上行 →
   `SessionWorkspace.selectNode`（双向同步闭环）。
-- **握手能力协商**：hello 应答 `hello-ack` 携带 `structuredDocument` 标志
-  （桥构造时由宿主注入），客户端据此**开机即定数据源模式**——不再等第一条
-  document 消息隐式激活，消除了"先渲染 Mock 再切换"的闪烁；未绑定时自然
-  呈现空态（提示打开 Markdown）。
+- **握手能力协商**：hello 应答 `hello-ack` 携带 `structuredDocument` 标志，
+  客户端据此**在首帧之后立即定数据源模式**：`true` → 宿主源，`false` → 示例
+  数据。握手完成前处于 `connecting` 空数据源（不渲染任何文档内容，见 D13），
+  因此既没有"先渲染示例数据再切换"的闪帧，也不会把示例数据当成当前文档；
+  未绑定时自然呈现空态（提示打开 Markdown）。
 - **推送去重**：宿主按 (revision, 选中, 当前文件) 三元组去重，客户端同款
   防御——Agent 连续操作不会重复全量推送/重渲染；currentFile 变化（同文件
   重绑）仍会推送。
@@ -158,6 +160,23 @@ better-sidebar 快照不含"当前文件"字段，由本插件按 controller 同
 → 触发 dsh-structured-document 懒绑定/按需重绑（解析 Markdown 为 IR）。
 仅 `.md / .markdown` 文件参与联动；非 Markdown 文件发送 null（清除指针，
 不自动解绑内存文档）。
+
+### D13 数据源状态机：`connecting` / `host` / `mock`（F010，待实现）
+
+运行时的数据源是显式状态，而不是"默认 Mock、收到推送再换"：
+
+- `connecting`：初始态，尚未收到 `hello-ack`（含重连中）。bridge 指向
+  `EmptyDocumentProvider`（文档恒 null），内容区显示连接中提示，隐藏示例
+  文档切换器；文档类命令返回 `SOURCE_NOT_READY`，不对示例数据假装成功。
+- `host`：`hello-ack.structuredDocument === true` → `switchToHost()`；
+  未绑定文档时显示空状态。
+- `mock`：`hello-ack.structuredDocument === false` → `switchToMock()`；
+  启用内置示例数据，且界面必须有"示例数据"标识（内容区提示条 + 状态栏）。
+
+不变量：未握手不等于"无内核"，只有宿主明确声明 `false` 才允许展示示例数据；
+状态单向（`connecting → host | mock`），断线保留当前画面与数据源、只标注重试，
+不回落示例数据。原设计"初始即 Mock"是 `ViewRuntime` 构造时固定使用
+`MockDocumentProvider` 所致（旧实现），已由本决策取代。
 
 ## 4. 数据流
 
@@ -194,13 +213,14 @@ dsh-structured-document（宿主）                dsh-structured-document-view
                 │                                             │ WebSocket
                 ▼                                             ▼
        当前文件联动：                         浏览器端：HostBackedDocumentProvider
-       better-sidebar 快照 →                  （收到宿主推送即从 Mock 切换；
+       better-sidebar 快照 →                  （握手声明有内核即切宿主源；
        current-file 消息 → setCurrentFile     点节点 → select-node 回宿主）
 ```
 
-要点（见 D11/D12）：
-- **软依赖**：宿主 `ctx.get` 探测，不声明 inject；客户端收到宿主文档推送才
-  切数据源，未收到则用 Mock（两个插件各自独立可用，装齐自动配合）；
+要点（见 D11/D12/D13）：
+- **软依赖**：宿主 `ctx.get` 探测，不声明 inject；客户端按 `hello-ack` 明确
+  决定数据源（`true` → 宿主源、`false` → 示例数据），握手前是 `connecting`
+  空状态，不会把示例数据当当前文档（两个插件各自独立可用，装齐自动配合）；
 - **单向真源**：文档只能被 dsh-structured-document 修改（其 17 个工具 /
   Skill），本插件的视图工具只改 View State；"选中"双向同步；
 - **当前文件联动**：浏览器打开 `.md` 文件 → setCurrentFile → 懒绑定 /

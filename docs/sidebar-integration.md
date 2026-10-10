@@ -35,9 +35,10 @@
 better-sidebar 传 `TabComponentProps`（含 `scope.sessionId`、`visible`）。
 TabView 按会话从 `ViewSessionManager` 取运行时，订阅其状态并渲染：
 
-- 工具栏：视图切换 / 文档切换（Mock）/ 层级 / 布局（思维导图）/ 筛选 / 重置；
-- 状态栏：当前文档（provider / revision）与当前节点；
-- 内容区：按 `currentView` 渲染三种视图之一；
+- 工具栏：视图切换 / 文档切换（仅 `mock` 状态可见）/ 层级 / 布局（思维导图）/ 筛选 / 重置；
+- 状态栏：数据源与连接状态（正在连接 / 结构化文档 + 当前文件 + revision / 示例数据）；
+- 内容区：按 `currentView` 渲染三种视图之一；`connecting` 显示连接中提示，
+  无文档显示空状态，`mock` 额外显示"示例数据"提示条；
 - `visible === false` 时不渲染内容（节省资源）。
 
 ## 生命周期
@@ -48,6 +49,8 @@ TabView 按会话从 `ViewSessionManager` 取运行时，订阅其状态并渲�
 2. `SidebarAdapter.registerTab()` 注册页；
 3. 订阅 better-sidebar 状态，跟随活动会话：会话变化 →
    `ViewSessionManager.setActiveSession(id)`（关闭旧连接、连新桥、懒建运行时）；
+   会话首次激活时自动打开「结构化文档」页签（`openViewTab`）——页签随即可见，
+   但内容区在握手完成前是 `connecting` 空状态，不会先显示示例数据；
 4. **当前文件联动**：从快照推导活动编辑器文件（`sidebar-file.ts`，
    active pane 的 active editor tab）→ `.md / .markdown` 文件经
    `current-file` 桥消息同步给宿主文档服务（dsh-structured-document
@@ -56,10 +59,16 @@ TabView 按会话从 `ViewSessionManager` 取运行时，订阅其状态并渲�
 
 会话切换时，各会话的运行时（文档 + 视图状态）按会话保留，切回不丢状态。
 
-## 数据源切换（Mock ↔ 结构化文档）
+## 数据源切换（connecting / host / mock）
 
-- 未装 dsh-structured-document：浏览器端用 Mock 数据源（文档切换下拉可见）；
-- 已装 dsh-structured-document：宿主 `HostDocumentIntegrator` 激活，收到
-  宿主文档推送后运行时从 Mock 切换为 `HostBackedDocumentProvider`
-  （文档切换下拉隐藏；状态栏显示当前文件与 revision）；
-- 切换是**软依赖 + 回退**：两个插件各自独立可用，装齐自动配合。
+- 客户端启动后先进入 `connecting`：内容区显示"正在连接视图桥…"，不渲染任何
+  文档，也不显示示例文档切换器；
+- 未装 dsh-structured-document：宿主 `hello-ack` 回 `structuredDocument: false`
+  → 进入 `mock`，浏览器端用内置示例数据（文档切换下拉可见，界面必须带
+  "示例数据"标识）；
+- 已装 dsh-structured-document：`hello-ack` 回 `true` → 进入 `host`，
+  运行时从空数据源切到 `HostBackedDocumentProvider`（文档切换下拉隐藏；
+  状态栏显示当前文件与 revision；未绑定时显示空状态）；
+- 断线保留当前数据源与画面，只标注重试中，不回落为示例数据；
+- 切换是**软依赖 + 显式协商**：两个插件各自独立可用，装齐自动配合；示例数据
+  只在宿主明确声明无内核时出现（见 SPEC F010）。
