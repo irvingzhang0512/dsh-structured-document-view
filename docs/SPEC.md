@@ -91,7 +91,7 @@
 
 ## F010 数据源状态机与示例数据边界
 
-- 实现状态：待实现（规格先定，待用户确认该版文档后开发）。
+- 实现状态：已实现（2026-10-10）。
 - 场景与预期：视图数据源显式分三态：`connecting`（未收到 hello-ack）／`host`（宿主声明有文档内核）／`mock`（宿主明确声明无文档内核）。`connecting` 不渲染任何文档内容；`host` 在未绑定时显示空状态；只有 `mock` 才启用内置示例数据，且必须显式标注为示例数据。
 - 边界与异常：握手前或握手中不得出现任何示例文档标题、大纲或文档切换器；`connecting` 下文档类命令返回 `SOURCE_NOT_READY`，不产生"已打开章节"这类假成功；连接中断保留最近画面与数据源并标注重试中，不得回退为示例数据；`mock` 仅在宿主 hello-ack 明确 `structuredDocument: false` 时进入。
 - 验收条件：
@@ -101,20 +101,20 @@
   - A4：`connecting` 状态下文档类命令返回 `SOURCE_NOT_READY`。
   - A5：连接断开后画面与数据源保留，界面标注重试中。
   - A6：安装内核且有绑定文档时行为与本变更前一致（回归）。
-- 实现依据（拟改／拟新增，尚未实现）：[../src/client/runtime.ts](../src/client/runtime.ts)、[../src/client/views/tab-view.tsx](../src/client/views/tab-view.tsx)、[../src/document/empty-provider.ts](../src/document/empty-provider.ts)（拟新增）、[../src/document/mock-provider.ts](../src/document/mock-provider.ts)。
-- 验证记录：未实现，暂无运行验证；实现后补单测、客户端 bundle 冒烟与 GUI 回归。
+- 实现依据：[../src/client/runtime.ts](../src/client/runtime.ts)、[../src/client/views/tab-view.tsx](../src/client/views/tab-view.tsx)、[../src/document/empty-provider.ts](../src/document/empty-provider.ts)、[../src/client/plugin-style.ts](../src/client/plugin-style.ts)。
+- 验证记录：2026-10-10 实现并运行验证——`npm run typecheck`、`npm test`（20 文件 / 149 用例）、`npm run build` 三绿；新增/更新用例：[../tests/host-backed-provider.spec.ts](../tests/host-backed-provider.spec.ts)（四态迁移、`SOURCE_NOT_READY`、真实文档优先）、[../tests/tab-view.spec.tsx](../tests/tab-view.spec.tsx)（首帧不出现示例数据、mock 标识、host 空状态）、[../tests/skill.spec.ts](../tests/skill.spec.ts)（E2E 走 hello-ack）、[../tests/viewport-runtime.spec.ts](../tests/viewport-runtime.spec.ts)。GUI 回归尚未执行（见待办）。
 
 ## 差异与验证待办
 
 - AGENTS／README 等旧数量需统一为注册表实际的 17 个工具。
 - views.md 旧段落将 depth／collapse 描述为 Markdown 全部内容截断，与新增阅读器语义冲突；本次澄清章节阅读与树形投影差异。
 - 跨插件测试不等于真实浏览器验证；Mind Elixir 布局、抽屉、焦点和标签生命周期本次未实测。
-- F010 待实现：数据源状态机与示例数据边界已定规格，尚未改源码。
 - 宿主侧诊断项（本轮范围外，需重启承载会话的实例）：`ViewStateWire` 增加数据源字段、`get_view_state` 投影数据源与连接状态、宿主 capabilities 改为 hello 时求值——留到下一次开发。
-- F010 的 GUI 回归（新窗口首帧、未绑定空状态、无内核环境的示例数据标注）尚未执行。
+- F010 的 GUI 回归（新窗口首帧、未绑定空状态、无内核环境的示例数据标注）尚未执行；浏览器刷新后即可验证（本轮只改客户端，无需重启宿主）。
 
 ## 规格变更记录
 
-- 2026-10-10：新增 F010（数据源状态机与示例数据边界），并修正 F001 边界表述——"尚未握手"不再视为"无内核"，不得默认把示例数据当当前文档渲染。本次仅改文档，未改源码、测试或运行配置；实现时目标版本 0.3.0（minor，随实现提交提高）。
+- 2026-10-10：F010（数据源状态机与示例数据边界）实现完成，包版本提高为 0.3.0（minor）：握手前 `connecting` 不渲染任何文档、示例数据只在宿主明确声明无内核时启用并带可见标识、`connecting` 下文档类命令返回 `SOURCE_NOT_READY`；同时修正 F001 边界表述。规格与实现同版，A1–A6 与用例对应关系见 F010 验证记录。
+- 2026-10-10：新增 F010 规格与相关技术契约（仅文档），交用户确认后开发。
 
 - 2026-10-03：首次从现行文档、实现和现有测试建立功能基线；仅修改维护文档，未变更 API、存储或运行逻辑。

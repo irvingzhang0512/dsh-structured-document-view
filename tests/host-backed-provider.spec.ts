@@ -104,7 +104,7 @@ describe('HostBackedDocumentProvider', () => {
   })
 })
 
-describe('ViewRuntime 宿主模式', () => {
+describe('ViewRuntime 数据源状态机（SPEC F010）', () => {
   function makeRuntime(): { runtime: ViewRuntime, pushed: unknown[], sent: unknown[] } {
     const pushed: unknown[] = []
     const sent: unknown[] = []
@@ -112,10 +112,67 @@ describe('ViewRuntime 宿主模式', () => {
     return { runtime, pushed, sent }
   }
 
-  it('applyHostDocument 切换数据源（Mock → 宿主）', () => {
+  it('握手前是 connecting：不渲染任何文档（不拿示例数据顶替）', () => {
     const { runtime } = makeRuntime()
+    expect(runtime.getSource()).toBe('connecting')
     expect(runtime.isHostMode()).toBe(false)
-    expect(runtime.bridge.getDocument()?.id).toBeDefined() // Mock 文档
+    expect(runtime.isMockMode()).toBe(false)
+    expect(runtime.bridge.getProvider().id).toBe('empty')
+    expect(runtime.bridge.getDocument()).toBeNull()
+    expect(runtime.bridge.getSelectedNode()).toBeNull()
+    runtime.dispose()
+  })
+
+  it('connecting 状态下文档类命令返回 SOURCE_NOT_READY（不假装成功）', () => {
+    const { runtime } = makeRuntime()
+    for (const command of [
+      { name: 'expand_node' as const, node: 'node_002' },
+      { name: 'collapse_node' as const, node: 'node_002' },
+      { name: 'focus_node' as const, node: 'node_002' },
+      { name: 'open_node' as const, node: 'node_002' },
+      { name: 'navigate_section' as const, direction: 'next' as const },
+    ]) {
+      const result = runtime.applyCommand(command)
+      expect(result.ok).toBe(false)
+      expect(result.code).toBe('SOURCE_NOT_READY')
+    }
+    runtime.dispose()
+  })
+
+  it('applyCapabilities(false) 才进入示例数据模式（示例数据可读）', () => {
+    const { runtime } = makeRuntime()
+    runtime.applyCapabilities({ structuredDocument: false })
+    expect(runtime.getSource()).toBe('mock')
+    expect(runtime.isHostMode()).toBe(false)
+    expect(runtime.bridge.getProvider().id).toBe('mock')
+    expect(runtime.bridge.getDocument()).not.toBeNull()
+    // 示例数据模式下文档类命令恢复正常（独立可用）。
+    expect(runtime.applyCommand({ name: 'expand_node', node: 'node_002' }).ok).toBe(true)
+    runtime.dispose()
+  })
+
+  it('状态单向：已决定的数据源不再被后续能力声明改写', () => {
+    const { runtime } = makeRuntime()
+    runtime.applyCapabilities({ structuredDocument: false })
+    runtime.applyCapabilities({ structuredDocument: true })
+    expect(runtime.getSource()).toBe('mock')
+    runtime.dispose()
+  })
+
+  it('真实文档推送使 mock/connecting 立即切到宿主源（真实数据优先）', () => {
+    const { runtime } = makeRuntime()
+    runtime.applyCapabilities({ structuredDocument: false })
+    runtime.applyHostDocument({ document: makeDoc(3, 'node_004'), selectedNodeId: null, currentFile: '/tmp/a.md' })
+    expect(runtime.getSource()).toBe('host')
+    expect(runtime.bridge.getProvider().id).toBe('structured-document')
+    expect(runtime.bridge.getDocument()?.revision).toBe(3)
+    runtime.dispose()
+  })
+
+  it('applyHostDocument 切换数据源（connecting → 宿主）', () => {
+    const { runtime } = makeRuntime()
+    expect(runtime.getSource()).toBe('connecting')
+    expect(runtime.bridge.getDocument()).toBeNull()
     runtime.applyHostDocument({ document: makeDoc(7, 'node_010'), selectedNodeId: 'node_010', currentFile: '/tmp/a.md' })
     expect(runtime.isHostMode()).toBe(true)
     expect(runtime.bridge.getProvider().id).toBe('structured-document')
@@ -125,20 +182,13 @@ describe('ViewRuntime 宿主模式', () => {
     runtime.dispose()
   })
 
-  it('applyCapabilities 提前切宿主模式（无文档 → 空态）；false 保持 Mock', () => {
+  it('applyCapabilities 切宿主模式（无文档 → 空态）', () => {
     const { runtime } = makeRuntime()
     runtime.applyCapabilities({ structuredDocument: true })
     expect(runtime.isHostMode()).toBe(true)
     expect(runtime.bridge.getProvider().id).toBe('structured-document')
-    expect(runtime.bridge.getDocument()).toBeNull() // 未绑定：空态，而非 Mock 示例
+    expect(runtime.bridge.getDocument()).toBeNull() // 未绑定：空态，而非示例数据
     runtime.dispose()
-
-    const { runtime: mockRuntime } = makeRuntime()
-    mockRuntime.applyCapabilities({ structuredDocument: false })
-    expect(mockRuntime.isHostMode()).toBe(false)
-    expect(mockRuntime.bridge.getProvider().id).toBe('mock')
-    expect(mockRuntime.bridge.getDocument()).not.toBeNull()
-    mockRuntime.dispose()
   })
 
   it('applyCapabilities(true) 后收到文档推送仍正常应用', () => {

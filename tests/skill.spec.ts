@@ -80,6 +80,11 @@ function buildE2E(): {
   })
   const onCommand = (message: string): void => {
     const parsed = parseHostMessage(message)
+    // 宿主 hello 应答：真实客户端据此决定数据源（本 E2E 桥未声明内核 → 示例数据模式）。
+    if (parsed.type === 'hello-ack') {
+      runtime.applyCapabilities(parsed.capabilities)
+      return
+    }
     const result = runtime.applyCommand(parsed.command)
     bridge.handleClientMessage('s1', JSON.parse(encodeAck({ id: parsed.id, ok: result.ok, code: result.code, message: result.message, ...(result.value !== undefined ? { value: result.value } : {}) })))
   }

@@ -10,6 +10,7 @@
  * 未来替换数据源：仅换 Provider 实现，本运行时其余逻辑不变。
  */
 import { MockDocumentProvider } from '../document/mock-provider.ts'
+import { EmptyDocumentProvider } from '../document/empty-provider.ts'
 import { DocumentBridge } from '../document/document-bridge.ts'
 import { HostBackedDocumentProvider, type HostDocumentPush } from './document/host-backed-provider.ts'
 import type { DocNode, NodeId } from '../shared/ir.ts'
@@ -60,10 +61,40 @@ export interface MindMapViewportController {
 /** 状态推送去抖间隔（ms），避免缩放/平移高频事件刷爆桥。 */
 const PUSH_DEBOUNCE_MS = 80
 
+/**
+ * 数据源状态（SPEC F010）：`connecting` = 尚未收到宿主 hello-ack；
+ * `host` = 宿主声明有文档内核；`mock` = 宿主明确声明无内核（示例数据）。
+ * 状态单向：`connecting → host | mock`，不在 host / mock 之间互换。
+ */
+export type DocumentSource = 'connecting' | 'host' | 'mock'
+
+/**
+ * 依赖文档数据的命令：数据源未就绪（`connecting`）时不得执行，
+ * 否则会对着一份并不存在的文档"假装成功"（SPEC F010 / A4）。
+ */
+const SOURCE_DEPENDENT_COMMANDS: ReadonlySet<string> = new Set([
+  'expand_node',
+  'collapse_node',
+  'focus_node',
+  'open_node',
+  'navigate_section',
+])
+
+/** 数据源未就绪时的统一失败结果。 */
+function sourceNotReady(): CommandAckPayload {
+  return {
+    ok: false,
+    code: 'SOURCE_NOT_READY',
+    message: '视图桥尚未应答，数据源未就绪：界面显示「正在连接视图桥…」，请稍候重试。',
+  }
+}
+
 /** 视图会话运行时。 */
 export class ViewRuntime {
   readonly mockProvider: MockDocumentProvider
   readonly hostProvider: HostBackedDocumentProvider
+  /** `connecting` 阶段的占位数据源（文档恒为 null）。 */
+  readonly emptyProvider: EmptyDocumentProvider
   bridge: DocumentBridge
   readonly store: ViewStateStore
   private readonly sessionId: string
@@ -71,7 +102,8 @@ export class ViewRuntime {
   private readonly sendBridgeMessage: RuntimeBridgeSend | undefined
   /** 打开「结构化文档」侧边栏页签的回调（由客户端 apply 注入）。 */
   private readonly openTab: (() => void) | undefined
-  private hostMode = false
+  /** 数据源状态（SPEC F010）；握手前 `connecting`，初始不是 Mock。 */
+  private source: DocumentSource = 'connecting'
   private pushTimer: ReturnType<typeof setTimeout> | undefined
   private disposed = false
   private readonly unsubscribers: Array<() => void> = []
@@ -85,10 +117,12 @@ export class ViewRuntime {
     this.sendBridgeMessage = sendBridgeMessage
     this.openTab = openTab
     this.mockProvider = new MockDocumentProvider(activeDocumentId === undefined ? undefined : { activeDocumentId })
+    this.emptyProvider = new EmptyDocumentProvider()
     this.hostProvider = new HostBackedDocumentProvider({
       sendSelectNode: (nodeId) => this.sendBridgeMessage?.({ type: 'select-node', nodeId }),
     })
-    this.bridge = new DocumentBridge(this.mockProvider)
+    // 初始数据源是空占位：收到 hello-ack 前不渲染任何文档，也不展示示例数据。
+    this.bridge = new DocumentBridge(this.emptyProvider)
     this.store = new ViewStateStore()
 
     // 文档/选中变化 → 重新对齐状态并推送。
@@ -107,26 +141,41 @@ export class ViewRuntime {
     return () => this.runtimeListeners.delete(listener)
   }
 
+  /** 数据源状态（SPEC F010）。 */
+  getSource(): DocumentSource {
+    return this.source
+  }
+
   /** 是否使用宿主文档数据源（dsh-structured-document 集成激活）。 */
   isHostMode(): boolean {
-    return this.hostMode
+    return this.source === 'host'
   }
 
-  /** 宿主能力声明（hello 应答）：structuredDocument 为 true 时立即切宿主模式。 */
+  /** 是否处于示例数据模式（宿主明确声明无文档内核）。 */
+  isMockMode(): boolean {
+    return this.source === 'mock'
+  }
+
+  /**
+   * 宿主能力声明（hello 应答）：
+   * - `structuredDocument: true` → 切宿主数据源；
+   * - `false` → 宿主明确表示没有文档内核，才允许进示例数据模式；
+   * - 两者都只在 `connecting` 阶段生效（状态单向，不回退、不互换）。
+   */
   applyCapabilities(capabilities: { structuredDocument: boolean }): void {
     if (this.disposed) return
-    if (capabilities.structuredDocument && !this.hostMode) {
-      this.switchToHost()
-      this.emitRuntimeChange()
-    }
+    if (this.source !== 'connecting') return
+    this.switchSource(capabilities.structuredDocument ? 'host' : 'mock')
+    this.emitRuntimeChange()
   }
 
-  /** 宿主文档快照推送：切换数据源（Mock → 宿主）并刷新视图。 */
+  /** 宿主文档快照推送：切换数据源（connecting/mock → 宿主）并刷新视图。 */
   applyHostDocument(push: HostDocumentPush): void {
     if (this.disposed) return
     this.hostProvider.applyDocument(push)
-    if (!this.hostMode) {
-      this.switchToHost()
+    if (this.source !== 'host') {
+      // 真实文档推送即证明宿主确有文档内核：真实数据优先于任何示例数据。
+      this.switchSource('host')
     } else {
       // 已切换：applyDocument 的 emit 已驱动 bridge → reconcile + 推送。
       this.reconcileSelection()
@@ -153,11 +202,15 @@ export class ViewRuntime {
     return this.hostProvider.currentFile
   }
 
-  private switchToHost(): void {
-    if (this.hostMode) return
-    this.hostMode = true
+  /**
+   * 切换数据源：重建 bridge（指向对应 Provider）并重新对齐选中、推送镜像。
+   * 只在状态机的合法迁移上调用（见 {@link applyCapabilities}）。
+   */
+  private switchSource(source: 'host' | 'mock'): void {
+    if (this.source === source) return
+    this.source = source
     this.bridge.dispose()
-    this.bridge = new DocumentBridge(this.hostProvider)
+    this.bridge = new DocumentBridge(source === 'host' ? this.hostProvider : this.mockProvider)
     this.attachBridge(this.bridge)
     this.reconcileSelection()
     this.pushNow()
@@ -188,6 +241,7 @@ export class ViewRuntime {
   /** 执行一条 ViewCommand；返回 ack 载荷。 */
   applyCommand(command: ViewCommand): CommandAckPayload {
     if (this.disposed) return { ok: false, code: 'INTERNAL_ERROR', message: '运行时已释放。' }
+    if (this.source === 'connecting' && SOURCE_DEPENDENT_COMMANDS.has(command.name)) return sourceNotReady()
     switch (command.name) {
       case 'set_view':
         return this.applySetView(command.view)
@@ -230,6 +284,7 @@ export class ViewRuntime {
 
   /** 桥和界面使用的异步入口：视口类命令等待实际画布操作完成。 */
   async applyCommandAsync(command: ViewCommand): Promise<CommandAckPayload> {
+    if (this.source === 'connecting' && SOURCE_DEPENDENT_COMMANDS.has(command.name)) return sourceNotReady()
     if (command.name === 'focus_node') {
       const prepared = this.applyFocus(command.node)
       if (!prepared.ok) return prepared
@@ -476,10 +531,12 @@ export class ViewRuntime {
     this.schedulePush()
   }
 
-  /** 切换 Mock 文档（Mock 专属；宿主模式下禁用）。 */
+  /** 切换 Mock 文档（示例数据专属；仅 `mock` 状态可用）。 */
   setActiveDocument(documentId: string): { ok: boolean; message: string } {
     if (this.disposed) return { ok: false, message: '运行时已释放。' }
-    if (this.hostMode) return { ok: false, message: '当前使用结构化文档数据源，不支持切换示例文档。' }
+    if (this.source !== 'mock') {
+      return { ok: false, message: '当前数据源不是示例数据，不支持切换示例文档。' }
+    }
     try {
       this.mockProvider.setActiveDocument(documentId)
       return { ok: true, message: `已切换为「${this.mockProvider.getActiveDocumentLabel()}」。` }
@@ -595,6 +652,7 @@ export class ViewRuntime {
     }
     this.runtimeListeners.clear()
     this.bridge.dispose()
+    this.emptyProvider.dispose()
     this.mockProvider.dispose()
     this.hostProvider.dispose()
   }

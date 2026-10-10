@@ -1,6 +1,6 @@
 {
   "name": "dsh-structured-document-view",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "DSH plugin：基于 dsh-better-sidebar 展示结构化文档的 Markdown / 思维导图 / 表格多视图，通过 View Tool 与中文 Skill 控制展示状态，通过 Document Bridge 与 dsh-structured-document 解耦集成。",
   "type": "module",
   "repository": {

@@ -12,7 +12,10 @@ description: >-
 # 结构化文档视图控制（dsh-structured-document-view）
 
 通过视图工具控制侧边栏「结构化文档」页的展示。**所有工具只改视图状态，
-不改文档**；文档优先来自 dsh-structured-document，未安装时回退到三份 Mock 示例。
+不改文档**；文档优先来自 dsh-structured-document。宿主未安装该内核时，视图会
+显示内置示例数据（会议纪要／项目管理／思路整理）并带「示例数据」标识；桥握手
+完成前界面显示「正在连接视图桥…」，此时文档类命令返回 `SOURCE_NOT_READY`，
+稍候重试即可。
 
 ## 可用的视图工具
 

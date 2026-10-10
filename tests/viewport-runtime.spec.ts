@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from 'vitest'
 import { ViewRuntime, type MindMapViewportController } from '../src/client/runtime.ts'
 
 function makeRuntime(): ViewRuntime {
-  return new ViewRuntime('s1', () => undefined)
+  // 进入示例数据模式：这些用例验证的是独立运行（无文档内核）时的命令行为，
+  // 对应宿主 hello-ack 声明 structuredDocument: false（SPEC F010）。
+  const runtime = new ViewRuntime('s1', () => undefined)
+  runtime.applyCapabilities({ structuredDocument: false })
+  return runtime
 }
 
 describe('ViewRuntime 视口命令', () => {

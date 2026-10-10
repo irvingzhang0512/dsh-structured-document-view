@@ -105,6 +105,18 @@ export const PLUGIN_STYLE = `
   padding: 24px;
   text-align: center;
 }
+/* 示例数据提示条（仅 mock 状态显示，SPEC F010 / A2） */
+.sdv-sample-banner {
+  flex: none;
+  margin: 0 10px 6px;
+  padding: 6px 8px;
+  border: 1px solid rgba(200,140,0,.45);
+  border-radius: 4px;
+  background: rgba(200,140,0,.10);
+  color: inherit;
+  font-size: 12px;
+  line-height: 1.45;
+}
 /* Markdown 视图 */
 .sdv-markdown-scroll {
   flex: 1;

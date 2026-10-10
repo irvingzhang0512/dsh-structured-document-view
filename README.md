@@ -20,7 +20,7 @@ A DSH (DeepSeek Harness) plugin that adds a **Structured Document** page to the 
 - **Chinese skill included** — installing the plugin auto-registers the `structured-document-view` skill. It understands natural-language intents such as "switch to mind map", "show only two levels", "expand the second topic", "focus the current node", "switch to left-to-right layout", and "restore the default view".
 - **Tab opens automatically** — the Structured Document tab opens itself the first time a session becomes active; `open_view_tab` opens/activates it on demand at any time.
 - **Node IDs stay identical** — mind map node IDs *are* the document node IDs, so clicks, focus, and expansion map 1:1 to document nodes.
-- **Mock by default, real documents on demand** — ships with three built-in mock documents (meeting minutes / project management / idea organization) and works standalone. Installing `dsh-structured-document` switches the view to real documents automatically via `HostBackedDocumentProvider`: the host pushes document snapshots and selection over the bridge, clicks in the view write the selection back, and the better-sidebar current file is linked through lazy binding. Without it, everything falls back to Mock — fully usable on its own.
+- **Explicit three-state data source** — before the bridge handshake the page shows an "connecting" empty state (no document is rendered, and sample data is never a stand-in for it). Once the host declares a document kernel the view renders real documents (empty state when nothing is bound); only when the host explicitly reports no kernel does it fall back to the three built-in sample documents, always marked as sample data. The state never moves backwards: a dropped connection keeps the current view and only marks itself as retrying. Installing `dsh-structured-document` switches the view to real documents automatically via `HostBackedDocumentProvider`: the host pushes document snapshots and selection over the bridge, clicks in the view write the selection back, and the better-sidebar current file is linked through lazy binding.
 - **Reuses `dsh-better-sidebar`** — the tab, display area, and lifecycle all come from better-sidebar (optional peer dependency). If it is missing, the host-side tools, bridge, and skill still work; commands are queued and applied automatically once the view opens.
 
 ## Quick Start
@@ -29,17 +29,17 @@ A DSH (DeepSeek Harness) plugin that adds a **Structured Document** page to the 
 
 - DSH web (Node >= 20);
 - `dsh-better-sidebar` — soft dependency, recommended (provides the sidebar page and current-file linking; the host-side tools, bridge, and skill still work without it);
-- `dsh-structured-document` — optional; install to show real structured documents instead of the built-in mock examples.
+- `dsh-structured-document` — optional; install to show real structured documents. Without it the host reports "no document kernel" and the view shows the built-in sample documents, always marked as such.
 
 ```bash
-# View only — works standalone with the built-in mock documents
+# View only — sample documents appear when no document kernel is installed
 dsh plugin --profile web add dsh-structured-document-view@latest
 
 # Recommended: pair with the real document data source
 dsh plugin --profile web add dsh-structured-document@latest
 ```
 
-After installing, refresh the browser: the sidebar "+" menu shows the **Structured Document** page, and it opens automatically for the active session. Without `dsh-structured-document` you see the built-in mock documents; with it, open a `.md` / `.markdown` structured document in the sidebar to start rendering the real one — the mock switcher disappears, and edits made through `dsh-structured-document` tools refresh the view live.
+After installing, refresh the browser: the sidebar "+" menu shows the **Structured Document** page, and it opens automatically for the active session. Until the bridge handshake completes the page shows "connecting" and renders no document at all. With `dsh-structured-document`, open a `.md` / `.markdown` structured document in the sidebar to start rendering the real one — the sample-data switcher disappears, and edits made through `dsh-structured-document` tools refresh the view live. Without it, the built-in sample documents are shown with a visible "sample data" marker.
 
 ## View Tools
 

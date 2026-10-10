@@ -133,11 +133,12 @@ sec-fetch-site 非同站 + origin 主机名校验），拒绝直接 destroy。
   setCurrentFile / subscribe / getDocumentSnapshot）。
 - 本插件宿主半区用 `ctx.get('structuredDocument')` **免 inject 探测**
   （cordis reflect；服务缺失返回 undefined）：服务存在 → 激活
-  `HostDocumentIntegrator`；缺失 → 不激活，客户端回退 Mock（两插件
-  独立可用）。**inject 里不声明它**，避免 cordis 硬依赖。
+  `HostDocumentIntegrator`；缺失 → 不激活，hello-ack 回
+  `structuredDocument: false`，客户端据此才进入示例数据模式（见 D13）。
+  **inject 里不声明它**，避免 cordis 硬依赖。
 - 数据流：宿主订阅会话工作区变化（bound/document/selection/unbound）→
   推 `document` / `selection` 桥消息 → 浏览器 `HostBackedDocumentProvider`
-  更新镜像（运行时从 Mock 切到宿主源）；用户点节点 → `select-node` 上行 →
+  更新镜像（运行时切到宿主数据源）；用户点节点 → `select-node` 上行 →
   `SessionWorkspace.selectNode`（双向同步闭环）。
 - **握手能力协商**：hello 应答 `hello-ack` 携带 `structuredDocument` 标志，
   客户端据此**在首帧之后立即定数据源模式**：`true` → 宿主源，`false` → 示例

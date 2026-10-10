@@ -51,7 +51,7 @@ npm run build
 1. 在侧边栏打开一个 **Markdown 结构化文档**（`.md` / `.markdown`）——
    dsh-structured-document 把它解析为 IR 并绑定为该会话的当前文件；
 2. 「结构化文档」视图页随即展示解析结果（状态栏显示文件名与 revision，
-   工具栏的 Mock 文档切换隐藏）；
+   工具栏的示例数据切换隐藏）；
 3. Agent 用 dsh-structured-document 的工具（`add_node` / `update_node` /
    `move_node` / `select_node` …）修改文档 → 视图**实时刷新**；
 4. 在视图（思维导图/表格/Markdown）点击节点 → 选中同步回文档侧

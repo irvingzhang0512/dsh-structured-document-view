@@ -22,7 +22,7 @@ DSH（DeepSeek Harness）插件：基于 dsh-better-sidebar 展示**结构化文
 可导入的**中文 Skill**，让 Agent 与用户用自然语言控制"视图状态"。
 
 - 视图状态与文档严格分离：视图状态是纯 reducer 的不可变状态，只影响"怎么看"，绝不修改文档；
-- 与 `dsh-structured-document` 通过 Document Bridge 解耦集成（宿主软依赖探测，未安装时回退 Mock）；
+- 与 `dsh-structured-document` 通过 Document Bridge 解耦集成（宿主软依赖探测；仅在宿主明确声明"无文档内核"时展示带标识的内置示例数据）；
 - 思维导图节点 ID 即文档节点 ID，与文档一一对应。
 
 ## 仓库与分支

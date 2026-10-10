@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import type { TabComponentProps } from 'dsh-better-sidebar'
 import type { ViewSessionManager } from '../session-manager.ts'
-import type { ViewRuntime } from '../runtime.ts'
+import type { DocumentSource, ViewRuntime } from '../runtime.ts'
 import type { ViewState } from '../../shared/view-state.ts'
 import { LAYOUT_LABELS, MIND_MAP_LAYOUTS, VIEW_LABELS, VIEW_NAMES } from '../../shared/view-state.ts'
 import { toMindMapViewModel } from '../adapters/mindmap.ts'
@@ -64,6 +64,7 @@ export function TabView(props: StructuredDocumentTabProps): React.ReactElement {
 /** 视图面板（工具栏 + 内容区）。 */
 function ViewPanel({ runtime }: { runtime: ViewRuntime }): React.ReactElement {
   const state = runtime.store.getState()
+  const source = runtime.getSource()
   const document = runtime.bridge.getDocument()
   const selected = runtime.bridge.getSelectedNode()
 
@@ -92,8 +93,8 @@ function ViewPanel({ runtime }: { runtime: ViewRuntime }): React.ReactElement {
           ))}
         </div>
 
-        {/* 文档切换（仅 Mock 数据源阶段显示；宿主集成后隐藏） */}
-        {!runtime.isHostMode() && (
+        {/* 示例文档切换（仅示例数据模式显示；宿主集成或握手前隐藏） */}
+        {source === 'mock' && (
           <div className="sdv-toolbar-group" role="group" aria-label="文档切换">
             <select
               className="sdv-select"
@@ -165,18 +166,21 @@ function ViewPanel({ runtime }: { runtime: ViewRuntime }): React.ReactElement {
         <button type="button" className="sdv-btn" onClick={resetView} title="恢复默认视图">恢复默认</button>
       </div>
 
-      {/* 当前节点信息 */}
+      {/* 数据源与当前节点信息 */}
       <div className="sdv-statusbar">
         <span className="sdv-status-doc">
-          {document === null ? '无文档' : `${document.title}`}
-          {document !== null && (
+          {source === 'connecting' ? '正在连接视图桥…' : document === null ? '无文档' : document.title}
+          {source === 'connecting' && (
+            <span className="sdv-status-meta">（等待宿主应答 hello；数据源未就绪）</span>
+          )}
+          {source !== 'connecting' && document !== null && (
             <span className="sdv-status-meta">
-              {runtime.isHostMode()
+              {source === 'host'
                 ? `（结构化文档 · ${baseName(runtime.currentFile)} · revision ${document.revision}）`
-                : `（${runtime.mockProvider.getActiveDocumentLabel()} · revision ${document.revision} · ${runtime.mockProvider.displayName}）`}
+                : `（示例数据（未安装结构化文档内核） · revision ${document.revision}）`}
             </span>
           )}
-          {document === null && runtime.isHostMode() && (
+          {source === 'host' && document === null && (
             <span className="sdv-status-meta">（在侧边栏打开一个 Markdown 结构化文档）</span>
           )}
         </span>
@@ -187,15 +191,26 @@ function ViewPanel({ runtime }: { runtime: ViewRuntime }): React.ReactElement {
 
       <CommandGuide runtime={runtime} state={state} document={document} />
 
+      {source === 'mock' && (
+        <div className="sdv-sample-banner" role="note">
+          示例数据：宿主未安装结构化文档内核（dsh-structured-document），以下为内置示例，不是你的文档。
+        </div>
+      )}
+
       <div className="sdv-content">
-        <ContentView runtime={runtime} state={state} />
+        <ContentView runtime={runtime} state={state} source={source} />
       </div>
     </div>
   )
 }
 
-/** 内容区：按当前视图渲染。 */
-function ContentView({ runtime, state }: { runtime: ViewRuntime; state: ViewState }): React.ReactElement {
+/** 内容区：按数据源状态与当前视图渲染。 */
+function ContentView({ runtime, state, source }: { runtime: ViewRuntime; state: ViewState; source: DocumentSource }): React.ReactElement {
+  // 握手前不渲染任何文档内容（SPEC F010 / A1）：此时既没有真实文档，
+  // 也不允许拿内置示例数据顶替。
+  if (source === 'connecting') {
+    return <div className="sdv-empty">正在连接视图桥…（尚未收到宿主应答，不展示任何文档）</div>
+  }
   switch (state.currentView) {
     case 'mindmap': {
       const document = runtime.bridge.getDocument()

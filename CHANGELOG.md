@@ -14,6 +14,25 @@
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [0.3.0] - 2026-10-10
+
+### Fixed
+
+- **未绑定文档时不再把示例数据当"当前文档"渲染**（SPEC F010）。旧实现运行时的初始数据源固定是 `MockDocumentProvider`，因此只要宿主桥尚未握手完成（新窗口首帧、DSH 重启、插件热重载、页面先于宿主就绪），视图就会显示内置示例文档（如「第二技术路线」）并标注 Mock——用户容易误认为那是自己的文档。
+  - 数据源改为显式三态：`connecting`（未收到 `hello-ack`）／`host`（宿主声明有文档内核）／`mock`（宿主明确声明无内核）。`connecting` 用新增的 `EmptyDocumentProvider` 占位：内容区显示「正在连接视图桥…」，不渲染任何文档，也不显示示例数据切换器。
+  - 示例数据只在宿主 hello-ack 明确 `structuredDocument: false` 后启用，并新增可见的「示例数据」提示条与状态栏标注；状态单向（`connecting → host | mock`），断线保留画面只标注重试，不回落示例数据；真实文档推送始终优先（`connecting`/`mock` → `host`）。
+  - `connecting` 状态下 `expand_node` / `collapse_node` / `focus_node` / `open_node` / `navigate_section` 返回 `SOURCE_NOT_READY`，不再对着一份并不存在的文档"假装成功"。
+  - 无文档且宿主有内核时沿用空状态；「示例数据」模式才显示示例文档切换器。
+
+### Added
+
+- `src/document/empty-provider.ts`：`connecting` 阶段的空数据源（文档恒 null、零订阅）。
+- 新用例：`tests/tab-view.spec.tsx`（首帧不出现示例数据 / mock 标识 / host 空状态）、`tests/host-backed-provider.spec.ts` 的状态机用例（四态迁移、`SOURCE_NOT_READY`、真实文档优先）。
+
+### Changed
+
+- 文档同步：SPEC F010、document-provider（三态契约）、architecture（D13，更正 D11 关于"消除首帧闪烁"的描述）、views（视图页外壳三态表）、sidebar-integration、usage、README / README.zh-CN / AGENTS / 打包 Skill。
+
 ## Unreleased
 
 - **修复：视图打开默认停留在 Mock 示例文档**。旧实现桥断线重连失败 8 次（16 秒）后永久放弃，且同会话 `setActiveSession` 幂等短路没有再连入口——DSH 重启、插件热重载或页面先于宿主就绪时，浏览器端永远收不到 hello-ack 能力声明，视图因此一直显示 Mock 数据源（「模拟文档提供器（Mock）」）。现在改为指数退避（2s 起、翻倍、30s 封顶）的不限次重连：连接成功即清零退避，宿主恢复后最迟约 30 秒自动切回真实文档数据源；退避等待期 `connect()` 不提前重试，避免高频界面事件绕过限流。
