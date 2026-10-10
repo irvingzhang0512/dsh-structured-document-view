@@ -92,24 +92,17 @@ export interface ViewState {
   filter: ViewFilter | null
 }
 
-/** 默认视图状态。 */
-export const DEFAULT_VIEW_STATE: ViewState = {
-  currentView: 'markdown',
-  selectedNodeId: null,
-  focusedNodeId: null,
-  expandedNodeIds: [],
-  collapsedNodeIds: [],
-  depth: null,
-  viewDepths: { markdown: null, mindmap: 2, table: null },
-  readerMode: 'section',
-  outlineCollapsedNodeIds: [],
-  zoom: 1,
-  pan: { x: 0, y: 0 },
-  layout: 'logical',
-  filter: null,
-}
-
-/** 生成一份全新的默认状态（避免共享同一对象导致意外突变）。 */
+/**
+ * 生成一份全新的**内置默认**状态（避免共享同一对象导致意外突变）。
+ *
+ * 这是内置默认的唯一字面量来源：侧边卡片设置的内置默认值
+ * （`view-settings.ts` 的 `BUILTIN_VIEW_DEFAULTS`）从本函数的返回值推导，
+ * 不再另写一份字面量。SPEC F011 要求的「统一或删除」在这里落地：原
+ * `DEFAULT_VIEW_STATE` 常量与本函数重复且零引用，已删除。
+ *
+ * 注意：侧边卡片配置只影响**新会话／新运行时**的初始状态与 `reset_view`，
+ * 本函数始终返回内置默认（`markdown` / `logical` / 导图 2 层）。
+ */
 export function createDefaultViewState(): ViewState {
   return {
     currentView: 'markdown',
@@ -226,10 +219,13 @@ export function setFilter(state: ViewState, filter: ViewFilter | null): ViewStat
 /**
  * 恢复默认视图：重置视图类型、展开/收起、层级、缩放、平移、布局、筛选、
  * 聚焦；保留当前选中节点（"恢复默认视图"不应丢失当前节点）。
+ *
+ * @param initial 采用哪一份初始状态；缺省为内置默认。配置了侧边卡片默认值时，
+ * 运行时传入 `view-settings.ts` 的 `initialViewState(defaults)`（SPEC F011／A9）。
  */
-export function resetView(state: ViewState): ViewState {
+export function resetView(state: ViewState, initial: ViewState = createDefaultViewState()): ViewState {
   return {
-    ...createDefaultViewState(),
+    ...initial,
     selectedNodeId: state.selectedNodeId,
   }
 }

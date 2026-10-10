@@ -65,38 +65,60 @@ function makeEnvironment(): { captured: CapturedModule[], tabs: Record<string, u
   return { captured, tabs, opened, context }
 }
 
+/** 加载构建产物并返回其导出（apply/inject）。 */
+function loadBundle(context: ReturnType<typeof createContext>, captured: CapturedModule[]): Record<string, unknown> {
+  runInContext(readFileSync(BUNDLE_PATH, 'utf8'), context)
+
+  expect(captured).toHaveLength(1)
+  const module = captured[0]!
+  expect(module.id).toBe(BUNDLE_ID)
+  return module.factory((id) => (context as unknown as { require: (id: string) => unknown }).require(id))
+}
+
+/**
+ * 挂载客户端半区：fake ctx + fake betterSidebar service（按需给 `features`
+ * 与 `prefs.pluginSettings`），返回注册到的页签描述符与打开记录。
+ */
+function mountClient(
+  exports: Record<string, unknown>,
+  options: { features?: string[], pluginSettings?: unknown } = {},
+): { tabs: Record<string, unknown>[], opened: unknown[], disposers: Array<() => void> } {
+  const tabs: Record<string, unknown>[] = []
+  const opened: unknown[] = []
+  const prefs: Record<string, unknown> = options.pluginSettings === undefined
+    ? {}
+    : { pluginSettings: { 'structured-document-view': options.pluginSettings } }
+  const disposers: Array<() => void> = []
+  const service: Record<string, unknown> = {
+    registerTab: (descriptor: Record<string, unknown>) => {
+      tabs.push(descriptor)
+      return () => undefined
+    },
+    getSnapshot: () => ({ sessionId: 's1', state: undefined, prefs }),
+    subscribeState: () => () => undefined,
+    openTab: (seed: unknown) => { opened.push(seed) },
+  }
+  if (options.features !== undefined) service.features = options.features
+  const fakeCtx = {
+    effect: (fn: () => (() => void) | void) => {
+      const dispose = fn()
+      if (typeof dispose === 'function') disposers.push(dispose)
+      return () => undefined
+    },
+    betterSidebar: service,
+  }
+  ;(exports.apply as (ctx: Context) => void)(fakeCtx as unknown as Context)
+  return { tabs, opened, disposers }
+}
+
 describe.skipIf(!existsSync(BUNDLE_PATH))('lib/client.js 构建产物冒烟', () => {
   it('以包名注册，apply 注册「结构化文档」页且不抛异常', () => {
-    const { captured, tabs, opened, context } = makeEnvironment()
-    runInContext(readFileSync(BUNDLE_PATH, 'utf8'), context)
-
-    expect(captured).toHaveLength(1)
-    const module = captured[0]!
-    expect(module.id).toBe(BUNDLE_ID)
-
-    const exports = module.factory((id) => (context as unknown as { require: (id: string) => unknown }).require(id))
+    const { captured, context } = makeEnvironment()
+    const exports = loadBundle(context, captured)
     expect(exports.inject).toEqual(['betterSidebar'])
     expect(typeof exports.apply).toBe('function')
 
-    const disposers: Array<() => void> = []
-    const fakeCtx = {
-      effect: (fn: () => (() => void) | void) => {
-        const dispose = fn()
-        if (typeof dispose === 'function') disposers.push(dispose)
-        return () => undefined
-      },
-      betterSidebar: {
-        registerTab: (descriptor: Record<string, unknown>) => {
-          tabs.push(descriptor)
-          return () => undefined
-        },
-        getSnapshot: () => ({ sessionId: 's1', state: undefined, prefs: {} }),
-        subscribeState: () => () => undefined,
-        openTab: (seed: unknown) => { opened.push(seed) },
-      },
-    }
-
-    ;(exports.apply as (ctx: Context) => void)(fakeCtx as unknown as Context)
+    const { tabs, opened, disposers } = mountClient(exports)
 
     // 注册了唯一的视图页，并在会话激活时打开它（未握手不会预置任何文档）。
     expect(tabs).toHaveLength(1)
@@ -108,5 +130,43 @@ describe.skipIf(!existsSync(BUNDLE_PATH))('lib/client.js 构建产物冒烟', ()
 
     // 释放路径不得抛异常（effect 的 disposer）。
     for (const dispose of disposers) expect(() => dispose()).not.toThrow()
+  })
+
+  it('F011：支持 pluginToggles 时声明四项设置行', () => {
+    const { captured, context } = makeEnvironment()
+    const exports = loadBundle(context, captured)
+    const { tabs } = mountClient(exports, { features: ['pluginSettings'] })
+
+    const settings = tabs[0]!.settings as { pluginToggles?: Array<{ key: string, type?: string }> } | undefined
+    expect(settings).toBeDefined()
+    expect(settings!.pluginToggles!.map(row => row.key)).toEqual([
+      'autoOpenTab',
+      'defaultView',
+      'defaultLayout',
+      'defaultMindmapDepth',
+    ])
+    expect(settings!.pluginToggles!.map(row => row.type)).toEqual(['switch', 'select', 'select', 'number'])
+  })
+
+  it('F011 A2：autoOpenTab=false 时不自动打开页签，但页签照常注册', () => {
+    const { captured, context } = makeEnvironment()
+    const exports = loadBundle(context, captured)
+    const { tabs, opened } = mountClient(exports, {
+      features: ['pluginSettings'],
+      pluginSettings: { autoOpenTab: false },
+    })
+
+    expect(tabs).toHaveLength(1)
+    expect(opened).toHaveLength(0)
+  })
+
+  it('F011 A7：没有 pluginSettings 能力时不声明设置行，仍自动打开页签（内置默认）', () => {
+    const { captured, context } = makeEnvironment()
+    const exports = loadBundle(context, captured)
+    const { tabs, opened } = mountClient(exports, { features: ['stateSubscription'] })
+
+    expect(tabs).toHaveLength(1)
+    expect(tabs[0]!.settings).toBeUndefined()
+    expect(opened).toHaveLength(1)
   })
 })

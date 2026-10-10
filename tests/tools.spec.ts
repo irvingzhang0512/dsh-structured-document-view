@@ -294,6 +294,33 @@ describe('registerViewTools', () => {
     expect(dispatch).toHaveBeenCalledWith('s1', { name: 'reset_view' }, undefined)
   })
 
+  it('reset_view 报告客户端回执里的真实视图（配置默认值可为非 markdown）', async () => {
+    const ctx = makeCtx()
+    const { deps } = makeBridge({
+      dispatch: async () => ({
+        delivered: true,
+        queued: false,
+        ack: { id: 'x', ok: true, code: 'OK', message: '已恢复默认视图。', value: { currentView: 'mindmap' } },
+      }),
+    })
+    registerViewTools(ctx as never, deps as never)
+    const tool = ctx.registered.find(t => t.name === 'reset_view')!
+    const result = (await runTool(tool, {})) as Record<string, unknown>
+    expect(result.currentView).toBe('mindmap')
+  })
+
+  it('reset_view 未送达时按内置默认估计（宿主看不到浏览器侧配置）', async () => {
+    const ctx = makeCtx()
+    const { deps } = makeBridge({
+      dispatch: async () => ({ delivered: false, queued: true, ack: null }),
+    })
+    registerViewTools(ctx as never, deps as never)
+    const tool = ctx.registered.find(t => t.name === 'reset_view')!
+    const result = (await runTool(tool, {})) as Record<string, unknown>
+    expect(result.code).toBe('QUEUED')
+    expect(result.currentView).toBe('markdown')
+  })
+
   it('无会话 → NO_AGENT', async () => {
     const ctx = makeCtx()
     const { deps } = makeBridge()

@@ -53,6 +53,28 @@
 （`ViewState.viewDepths.mindmap` 是 `number | null`，`null` 才表示不限层级）——
 控件返回 `0` 与内部「不限」不是同一个值，转换必须显式且可测。
 
+### 实现位置（SPEC F011）
+
+| 环节 | 位置 |
+| --- | --- |
+| 声明四项设置行（仅宿主支持时） | `src/client/sidebar-adapter.tsx` 的 `registerTab()` → `settings.pluginToggles`（`SETTING_ROWS`），门控 `supportsPluginSettings()`（公开 `service.features` 含 `'pluginSettings'`） |
+| 读回 | 同文件 `readPluginSettings()`／`readViewDefaults()`：`getSnapshot().prefs.pluginSettings['structured-document-view']` → `parseViewDefaults()` |
+| 解析与投影 | `src/shared/view-settings.ts`：`parseViewDefaults()`（逐字段回退、不抛错）、`mindmapDepthToInternal()`、`initialViewState()`（同时维护 `depth === viewDepths[currentView]` 不变式） |
+| 内置默认 | `src/shared/view-state.ts` 的 `createDefaultViewState()` 是唯一字面量来源，`BUILTIN_VIEW_DEFAULTS` 由它推导（原 `DEFAULT_VIEW_STATE` 已删除） |
+| 新运行时初始状态 | `ViewSessionManager.setViewDefaultsReader()` → `ViewRuntime` 构造 → `new ViewStateStore(readDefaults)`（构造时读一次，A5 不追溯） |
+| `reset_view` | `ViewRuntime.applyReset()` 用 `initialViewState(this.readDefaults())` 重置并保留选中节点；回执 `value.currentView` 报告真实结果 |
+| `autoOpenTab` 门控 | `src/client/index.ts`：`if (adapter.shouldAutoOpenTab()) adapter.openViewTab()` |
+
+**行控件在「键未设置」时的显示**（0.19.1 实测源码行为，非本插件可控）：插件行的取值
+来自 `pluginSettings[id]` 本身，键缺失时 `switch` 显示为**关**、`select` 显示占位符 `—`、
+`number` 显示**空**输入。因此四项设置行的说明文字都写明「未设置时按哪个默认处理」，
+避免把「未设置」误读成「关闭／不限」。本插件不写入默认值（该机制没有插件侧写入入口，
+只在设置弹窗里由用户操作写入）。
+
+`autoOpenTab` 的组合语义：本插件页签类型被显式关闭（`prefs.tabsEnabled['structured-document-view'] === false`）
+时 better-sidebar 会隐藏该页签并拒绝 `openTab`，此时 `autoOpenTab` 为真也不会打开——
+这是宿主既有的可达性规则，本插件不覆盖它。
+
 ### 依赖的 better-sidebar 扩展机制
 
 | 项 | 事实 |
@@ -60,7 +82,7 @@
 | 声明入口 | `registerTab(TabDescriptor)` 的 `settings.pluginToggles`（**v0.12.0+**）；`toggles` 的键必须是 better-sidebar 宿主 PrefsSchema 的字段（非该 schema 的键会被设置层丢弃），本插件不能用它。 |
 | 键的所有权 | `pluginToggles` 的键是插件本地键，不查宿主 PrefsSchema，因此不需要在宿主侧注册任何字段。 |
 | 持久化位置 | better-sidebar 自己的设置文档，`SidebarPrefs.pluginSettings[<描述符 id>]`，本插件即 `pluginSettings['structured-document-view']`；值为 JSON 可序列化（字符串／数字／布尔）。 |
-| 控件 | `SidebarSettingToggleType` = `switch` / `text` / `number` / `select`；`number` 在提交时按 `min` / `max` 收敛，`select` 用 `options`（`multi` 默认 false）。**注意**：`pluginToggles` 的类型注释只列举 `switch` / `text` / `number`，`select` 由共用类型定义；实现时以 0.19.1 实际渲染为准并做一次页面核对。 |
+| 控件 | `SidebarSettingToggleType` = `switch` / `text` / `number` / `select`；`number` 在提交时按 `min` / `max` 收敛，`select` 用 `options`（`multi` 默认 false）。**已核实（2026-10-10）：`select` 对 `pluginToggles` 可用**——0.19.1 的 `src/client/SideCardSection.tsx` 里 `FeatureSettingsRows` 对 `toggle.type === 'select'` 渲染 `SelectRow`／`SelectMenu`（选项值经 `onSelectValue` → `onPluginSelectValue` → `applyPluginSetting()` 写回），插件行的取值源是 `prefs.pluginSettings[<描述符 id>]`；实际加载的 `lib/client.js` 与 `lib/client-registry.js` 都含 `type === "select"`、`pluginBlob`、`onPluginSelectValue`、`aria-haspopup`（能力串 `settingSelect`）。此项依赖 v0.13.0+ 的 `settingSelect` 能力，`peerDependencies` 的 `>=0.19.1 <0.20.0` 已覆盖。未做真实页面核对（见 SPEC F011 验证记录）。 |
 | 读回方式 | 公开快照 `service.getSnapshot().prefs.pluginSettings['structured-document-view']`（`SidebarSnapshot.prefs` 就在快照里，prefs 变更会触发 `subscribeState` 回调），因此**不需要**新增订阅或直连私有 store。 |
 | 何时可改 | 设置行只在对应卡片启用时可达：`prefs.tabsEnabled['structured-document-view'] !== false` 才渲染齿轮入口（缺省为启用；显式 `false` 时该页签类型从 + 菜单隐藏、`openTab` 拒绝）。 |
 | 自定义面板 | `settings.render`（v0.12.0+）入参含 `prefs`、该描述符的 `pluginSettings` blob、`updatePluginSetting(key, value)`、`close()`。类型注释称它「取代行列表」，但 **0.19.1 的实现是在行列表之后追加**（`SettingsBody`：先 `toggles`／`pluginToggles`，再 `render`）。本版用 `pluginToggles` 行，不用 `render`，避免依赖这一差异。 |
@@ -79,10 +101,15 @@
 
 1. `pluginSettings['structured-document-view']` 里存在该键且取值合法 → 用它；
 2. 键缺失、类型不符或取值不在枚举内 → 回落到本插件内置默认（即上表「默认」列，
-   也是本变更前的硬编码值），并保持插件可用；
+   也是本变更前的硬编码值），并保持插件可用；`defaultMindmapDepth` 的越界值
+   （负数、非整数、`NaN`／`Infinity`、字符串）同样回退默认，**不做隐式截断**，
+   解析实现在 `src/shared/view-settings.ts` 的 `parseViewDefaults()`（逐字段独立判定，
+   不抛错）；
 3. `dsh-better-sidebar` 未安装或低于 0.12.0（描述符没有 `pluginToggles` 支持）→ 四项
    全部回退内置默认，插件照常挂载、照常渲染页签，**不得**因为缺少设置能力而报错或
    不挂载；这属于已有的软依赖边界（见上文「软依赖」），只使用公开 `service` 面。
+   实现上以 `service.features` 是否含 `'pluginSettings'` 判定：不支持时连
+   `settings.pluginToggles` 都不声明（描述符与本次改动前完全一致），读回直接返回内置默认。
 
 ## TabView（src/client/views/tab-view.tsx）
 
@@ -100,10 +127,11 @@ TabView 按会话从 `ViewSessionManager` 取运行时，订阅其状态并渲�
 客户端 `apply(ctx)`：
 
 1. 注入插件样式（幂等）；
-2. `SidebarAdapter.registerTab()` 注册页；
+2. `SidebarAdapter.registerTab()` 注册页（含四项侧边卡片设置声明）；
 3. 订阅 better-sidebar 状态，跟随活动会话：会话变化 →
    `ViewSessionManager.setActiveSession(id)`（关闭旧连接、连新桥、懒建运行时）；
-   会话首次激活时自动打开「结构化文档」页签（`openViewTab`）——页签随即可见，
+   会话首次激活时按 `autoOpenTab` 配置决定是否自动打开「结构化文档」页签
+   （`openViewTab`；未设置＝打开）——页签随即可见，
    但内容区在握手完成前是 `connecting` 空状态，不会先显示示例数据；
 4. **当前文件联动**：从快照推导活动编辑器文件（`sidebar-file.ts`，
    active pane 的 active editor tab）→ `.md / .markdown` 文件经

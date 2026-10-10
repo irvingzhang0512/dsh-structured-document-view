@@ -29,6 +29,7 @@ import {
   toggleOutlineNode as reducerToggleOutlineNode,
   type ViewState,
 } from '../shared/view-state.ts'
+import { BUILTIN_VIEW_DEFAULTS, initialViewState, type ViewDefaults } from '../shared/view-settings.ts'
 import { toOutline } from './adapters/outline.ts'
 import { ViewStateStore } from './view-state-store.ts'
 
@@ -102,6 +103,12 @@ export class ViewRuntime {
   private readonly sendBridgeMessage: RuntimeBridgeSend | undefined
   /** 打开「结构化文档」侧边栏页签的回调（由客户端 apply 注入）。 */
   private readonly openTab: (() => void) | undefined
+  /**
+   * 读取当前侧边卡片配置默认值（SPEC F011）。构造时读一次作为本运行时的初始
+   * 视图状态（A5：已存在会话不因之后改配置而变化）；`reset_view` 调用时重新读取，
+   * 因此重置采用"此刻的配置"（A9）。缺省为内置默认（软依赖回退）。
+   */
+  private readonly readDefaults: () => ViewDefaults
   /** 数据源状态（SPEC F010）；握手前 `connecting`，初始不是 Mock。 */
   private source: DocumentSource = 'connecting'
   private pushTimer: ReturnType<typeof setTimeout> | undefined
@@ -111,11 +118,12 @@ export class ViewRuntime {
   private viewportController: MindMapViewportController | null = null
   private viewportWaiters: Array<(controller: MindMapViewportController | null) => void> = []
 
-  constructor(sessionId: string, pushTarget: RuntimePushTarget, sendBridgeMessage?: RuntimeBridgeSend, activeDocumentId?: string, openTab?: () => void) {
+  constructor(sessionId: string, pushTarget: RuntimePushTarget, sendBridgeMessage?: RuntimeBridgeSend, activeDocumentId?: string, openTab?: () => void, readDefaults: () => ViewDefaults = () => BUILTIN_VIEW_DEFAULTS) {
     this.sessionId = sessionId
     this.pushTarget = pushTarget
     this.sendBridgeMessage = sendBridgeMessage
     this.openTab = openTab
+    this.readDefaults = readDefaults
     this.mockProvider = new MockDocumentProvider(activeDocumentId === undefined ? undefined : { activeDocumentId })
     this.emptyProvider = new EmptyDocumentProvider()
     this.hostProvider = new HostBackedDocumentProvider({
@@ -123,7 +131,8 @@ export class ViewRuntime {
     })
     // 初始数据源是空占位：收到 hello-ack 前不渲染任何文档，也不展示示例数据。
     this.bridge = new DocumentBridge(this.emptyProvider)
-    this.store = new ViewStateStore()
+    // 初始视图状态按配置默认值构造（F011）：无配置时即内置默认。
+    this.store = new ViewStateStore(readDefaults)
 
     // 文档/选中变化 → 重新对齐状态并推送。
     this.attachBridge(this.bridge)
@@ -477,9 +486,12 @@ export class ViewRuntime {
   }
 
   private applyReset(): CommandAckPayload {
-    this.store.update(state => reducerResetView(state))
+    // A9：重置到侧边卡片**此刻**配置的默认值（未配置／非法时即内置默认），
+    // 仍保留当前选中节点（F002 既有语义，由 reducerResetView 承担）。
+    const initial = initialViewState(this.readDefaults())
+    this.store.update(state => reducerResetView(state, initial))
     this.pushNow()
-    return { ok: true, code: 'OK', message: '已恢复默认视图。', value: { currentView: 'markdown' } }
+    return { ok: true, code: 'OK', message: '已恢复默认视图。', value: { currentView: initial.currentView } }
   }
 
   // ── 用户交互（来自视图组件）──────────────────────────────────────────────

@@ -14,6 +14,44 @@
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [0.4.0] - 2026-10-10
+
+### Added
+
+- **侧边卡片设置：默认视图与自动打开**（SPEC F011）。插件在 better-sidebar 的
+  **设置 → 侧边卡片** 里为自己的卡片提供四项设置，取代原来的硬编码行为：
+  - `autoOpenTab`（开关，默认开）：会话首次激活时是否自动打开「结构化文档」页签；关闭后
+    只注册页签（工具 `open_view_tab` 与手动点击页签仍可打开）。
+  - `defaultView`（`markdown` / `mindmap` / `table`，默认 `markdown`）：新会话／新运行时的初始视图。
+  - `defaultLayout`（`mind` / `logical` / `down`，默认 `logical`）：新会话／新运行时思维导图的初始布局。
+  - `defaultMindmapDepth`（整数，最小 0，默认 2）：新会话／新运行时思维导图的初始层级；
+    `0` 表示**不限层级**（映射为视图状态内部的 `null`，与工具栏「0 = 不限」一致）。
+- 声明方式为 `registerTab` 的 `settings.pluginToggles`（better-sidebar v0.12.0+），值持久化在该插件
+  自己的设置文档 `pluginSettings['structured-document-view']`；读回只用公开快照
+  `getSnapshot().prefs.pluginSettings[...]`，不接触第三方私有 store。
+- `reset_view`（工具栏「恢复默认」与工具 `reset_view`）**也采用配置默认值**（口径已由用户确认）：
+  重置到 `defaultView`／`defaultLayout`／`defaultMindmapDepth`，仍保留当前选中节点（F002 既有语义）；
+  工具回执 `currentView` 改为采用客户端执行结果（未送达时按内置默认估计）。
+- 新用例：[`tests/view-settings.spec.ts`](tests/view-settings.spec.ts)、
+  [`tests/view-settings-runtime.spec.ts`](tests/view-settings-runtime.spec.ts)、
+  [`tests/sidebar-adapter.spec.ts`](tests/sidebar-adapter.spec.ts)；并扩充
+  [`tests/client-bundle.spec.ts`](tests/client-bundle.spec.ts)（构建产物层面验证设置行声明与
+  `autoOpenTab` 门控）、[`tests/tools.spec.ts`](tests/tools.spec.ts)、
+  [`tests/view-state.spec.ts`](tests/view-state.spec.ts)。
+
+### Changed
+
+- 配置默认值只作用于**新会话／新运行时**：已存在会话当前持有的视图状态不被追溯改写；
+  「恢复默认视图」是用户显式动作，按改动时的配置重置。
+- 内置默认收敛为单一来源：`src/shared/view-state.ts` 的 `DEFAULT_VIEW_STATE`（零引用的重复默认）
+  已删除，`createDefaultViewState()` 是唯一字面量来源，`BUILTIN_VIEW_DEFAULTS` 由它推导（F011 要求）。
+- 新增 `src/shared/view-settings.ts`（纯解析与投影）：`parseViewDefaults()` 逐字段判定，
+  键缺失／类型不符／枚举外取值／层级越界一律回退内置默认，不隐式截断、不抛错；
+  `initialViewState()` 维护 `depth === viewDepths[currentView]` 不变式。
+- 文档同步：[docs/SPEC.md](docs/SPEC.md) F011 实现状态与验证记录、[docs/sidebar-integration.md](docs/sidebar-integration.md)
+  「配置契约」（新增实现位置、`select` 行控件可用性结论、键未设置时的显示说明）、
+  bundled skill 的 `reset_view` 说明。
+
 ## [0.3.0] - 2026-10-10
 
 ### Fixed

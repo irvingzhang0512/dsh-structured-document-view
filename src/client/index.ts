@@ -52,6 +52,9 @@ export function apply(ctx: Context): void {
     })
     // 宿主 open_tab 命令 → 打开/激活「结构化文档」页签。
     manager.setOpenTabHandler(() => adapter.openViewTab())
+    // SPEC F011：新会话运行时的初始视图状态取侧边卡片配置默认值。
+    // 必须在任何运行时创建之前注入（初始状态只在构造时读取一次）。
+    manager.setViewDefaultsReader(() => adapter.readViewDefaults())
     const disposers: Array<() => void> = [adapter.registerTab()]
 
     // 跟随活动会话：会话变化时切换桥连接（运行时按会话保留），并把
@@ -65,7 +68,9 @@ export function apply(ctx: Context): void {
           manager.setActiveSession(nextSession)
           // 自动打开「结构化文档」页签（每个会话首次激活时），否则用户
           // 打开侧边栏只会看到文件树/编辑器，找不到视图页。
-          adapter.openViewTab()
+          // SPEC F011／A2：按侧边卡片配置 `autoOpenTab` 门控（未设置＝开启；
+          // 关闭后只注册页签，工具 open_view_tab 与手动点击仍可打开）。
+          if (adapter.shouldAutoOpenTab()) adapter.openViewTab()
         }
         const runtime = manager.getRuntime(nextSession)
         if (runtime !== undefined) {

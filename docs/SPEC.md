@@ -106,8 +106,8 @@
 
 ## F011 侧边卡片设置（默认视图与自动打开）
 
-- 实现状态：待实现（2026-10-10 规格增量，用户确认该版文档后开发）。
-- 场景与预期：本插件在 better-sidebar 的**设置 → 侧边卡片**页（`settings.section`，id `better-sidebar`）暴露自己的设置行，字段与语义见 [sidebar-integration.md](sidebar-integration.md)「配置契约」：`autoOpenTab`（`switch`，默认 `true`）、`defaultView`（`select`：`markdown`／`mindmap`／`table`，默认 `markdown`）、`defaultLayout`（`select`：`mind`／`logical`／`down`，默认 `logical`）、`defaultMindmapDepth`（`number`，默认 `2`，最小 `0`，`0` 表示不限层级）。四项取代现在的硬编码：`autoOpenTab` 恒为真的自动打开，以及 `currentView: 'markdown'`／`layout: 'logical'`／`viewDepths.mindmap: 2` 的内置默认。设置经 better-sidebar 的 `settings.pluginToggles`（v0.12.0+）声明并持久化在 `pluginSettings['structured-document-view']`，运行时用公开快照读回。
+- 实现状态：已实现（2026-10-10）。
+- 场景与预期：本插件在 better-sidebar 的**设置 → 侧边卡片**页（`settings.section`，id `better-sidebar`）暴露自己的设置行，字段与语义见 [sidebar-integration.md](sidebar-integration.md)「配置契约」：`autoOpenTab`（`switch`，默认 `true`）、`defaultView`（`select`：`markdown`／`mindmap`／`table`，默认 `markdown`）、`defaultLayout`（`select`：`mind`／`logical`／`down`，默认 `logical`）、`defaultMindmapDepth`（`number`，默认 `2`，最小 `0`，`0` 表示不限层级）。四项取代原来的硬编码：`autoOpenTab` 恒为真的自动打开，以及 `currentView: 'markdown'`／`layout: 'logical'`／`viewDepths.mindmap: 2` 的内置默认。设置经 better-sidebar 的 `settings.pluginToggles`（v0.12.0+）声明并持久化在 `pluginSettings['structured-document-view']`，运行时用公开快照读回。
 - 边界与异常：
   - **软依赖**：`dsh-better-sidebar` 缺失或低于 0.12.0（描述符没有 `pluginToggles`）时，四项全部回退为现有硬编码默认值（`true`／`markdown`／`logical`／`2`），插件照常挂载、页签照常渲染，不因缺少设置能力而失败；只用公开 `service`（`registerTab`／`getSnapshot`／`subscribeState`／`openTab`），不依赖该插件的私有 store。
   - **优先级**：侧边卡片里设置过就用它；键缺失、类型不符或取值不在枚举内则回落本插件内置默认。该机制**没有**「重置为默认值」和「字段已被覆盖」标记，也**没有** revision／CAS 冲突保护（那些是宿主插件配置卡片的能力），并发写入以最后一次为准；本版不提供「清除覆盖」入口。
@@ -115,7 +115,7 @@
   - **不追溯**：配置只影响**新会话／新运行时**的初始视图状态，不改写已存在会话当前已经持有的视图状态；也不改文档内容。视图状态与文档内容分离的既有边界（视图只影响「怎么看」，见 F002）不因本功能改变。
   - **越界取值**：`defaultMindmapDepth` 只会按控件契约收到 `min: 0` 的整数，但直接改写设置文档或旧版本遗留值可能越界或非数字，必须按非法取值回落默认，不做隐式截断或抛出。
   - `defaultMindmapDepth = 0` 需映射为内部 `null`（`viewDepths.mindmap` 的 `null` 才表示不限层级），不能把 `0` 直接写进层级判断。
-  - **「恢复默认视图」的口径（已定：采用侧边卡片默认值）**：`resetView`（工具栏「重置」与工具 `reset_view`，[../src/shared/view-state.ts](../src/shared/view-state.ts) 第 230–235 行）现在直接调用 `createDefaultViewState()`；本版要求它重置到侧边卡片里配置的默认值（与「新运行时」口径一致；它是用户显式要求的动作，不属于追溯改写已存在会话的当前状态）。用户已于 2026-10-10 选定该口径，不再提供“恒用内置默认”的备选。
+  - **「恢复默认视图」的口径（已定：采用侧边卡片默认值）**：`resetView`（工具栏「重置」与工具 `reset_view`，[../src/shared/view-state.ts](../src/shared/view-state.ts)）实现前直接调用 `createDefaultViewState()`；本版要求它重置到侧边卡片里配置的默认值（与「新运行时」口径一致；它是用户显式要求的动作，不属于追溯改写已存在会话的当前状态）。用户已于 2026-10-10 选定该口径，不再提供“恒用内置默认”的备选。实现方式见下方实现依据（`resetView(state, initial)`）。
 - 验收条件：
   - A1：默认配置（四个键都未设置）下行为与本变更前一致：新会话自动打开页签、初始 `markdown`、布局 `logical`、导图层级 2。
   - A2：`autoOpenTab: false` 时新会话不再自动打开页签，工具 `open_view_tab` 与手动点击页签仍可打开。
@@ -126,12 +126,16 @@
   - A7：模拟没有 `pluginToggles` 能力的 better-sidebar（软依赖缺失或 < 0.12.0）时插件仍挂载、页签仍注册、四项均为内置默认。
   - A8：设置行出现在「设置 → 侧边卡片」的本插件卡片下；关闭该卡片后设置入口不再可达（回归项，页面核对）。
   - A9：「恢复默认视图」（工具栏「重置」与工具 `reset_view`）重置到配置的 `defaultView`／`defaultLayout`／`defaultMindmapDepth`（未设置或非法时回落内置默认 `markdown`／`logical`／2；`0` 表示不限层级）；保留当前选中节点，见 F002 既有语义。
-- 实现依据：待实现。预期改动（待实现，指出现状与落点）：
-  - [../src/client/sidebar-adapter.tsx](../src/client/sidebar-adapter.tsx)——`registerTab` 目前不传 `settings`，需声明 `pluginToggles`；并在适配层暴露 prefs 读回（`getSnapshot().prefs.pluginSettings[...]`），保持「只在这一层接触 better-sidebar」的既有约定。
-  - [../src/client/index.ts](../src/client/index.ts)——`autoOpenTab` 现在是 `onChange` 里无条件的 `adapter.openViewTab()`（第 62–69 行），改为按配置门控；该处已有 `subscribeState`，prefs 变化会自然重算。
-  - [../src/shared/view-state.ts](../src/shared/view-state.ts)——`createDefaultViewState()`（第 113 行）是运行时的真实默认入口；`DEFAULT_VIEW_STATE`（第 96 行）当前**没有任何引用**，是重复定义，改动时须一并统一（二者或收敛为一处），否则会留下不一致的第二份默认。
-  - [../src/client/runtime.ts](../src/client/runtime.ts)（第 126 行 `new ViewStateStore()`）与 [../src/client/view-state-store.ts](../src/client/view-state-store.ts)（第 9、37 行调用 `createDefaultViewState()`）——每个会话运行时的视图状态在这里构造，配置默认值要作用到「新运行时」必须经过这两处（例如让 store 接受初始状态）。**这是对「预期改动只含三个文件」的修正**：只改前三个文件无法让新运行时的初始视图状态跟随配置。
-- 验证记录：本版为文档增量，未运行任何验证。
+- 实现依据（2026-10-10 实现落点）：
+  - [../src/client/sidebar-adapter.tsx](../src/client/sidebar-adapter.tsx)——`registerTab` 声明 `settings.pluginToggles` 四项设置行（`SETTING_ROWS`，键 `autoOpenTab`／`defaultView`／`defaultLayout`／`defaultMindmapDepth`；控件 `switch`／`select`／`select`／`number`，`min: 0`），仅在 `supportsPluginSettings()`（公开 `service.features` 含 `'pluginSettings'`）为真时声明；`readPluginSettings()` 只读公开快照 `getSnapshot().prefs.pluginSettings['structured-document-view']`，`readViewDefaults()` 交给纯解析并回退内置默认，`shouldAutoOpenTab()` 供门控使用。适配层仍是唯一接触 better-sidebar 的地方。
+  - [../src/shared/view-settings.ts](../src/shared/view-settings.ts)（新增）——`ViewDefaults`、`BUILTIN_VIEW_DEFAULTS`、`VIEW_OPTIONS`／`LAYOUT_OPTIONS`、`parseViewDefaults()`（逐字段回退、不抛错）、`mindmapDepthToInternal()`（`0` → 内部 `null`）、`initialViewState()`（把配置投影成新的初始状态）。纯函数，不接触 better-sidebar。
+  - [../src/shared/view-state.ts](../src/shared/view-state.ts)——`DEFAULT_VIEW_STATE`（零引用的第二份默认）已**删除**，`createDefaultViewState()` 成为内置默认的唯一字面量来源；`BUILTIN_VIEW_DEFAULTS` 从它推导。`resetView(state, initial = createDefaultViewState())` 增加可选的「初始状态」入参以采用配置（缺省仍是内置默认，既有调用不变）。
+  - [../src/client/runtime.ts](../src/client/runtime.ts)、[../src/client/view-state-store.ts](../src/client/view-state-store.ts)——运行时的视图状态由 `new ViewStateStore(readDefaults)` 构造，初始状态在构造时读一次配置（A5 不追溯）；`applyReset()`（`reset_view`）用 `initialViewState(this.readDefaults())` 重置，回执 `value.currentView` 报告真实结果（原为写死的 `'markdown'`）。
+  - [../src/client/session-manager.ts](../src/client/session-manager.ts)——新增 `setViewDefaultsReader()`，把适配层的读取器注入每个新建运行时（**这是对「预期改动只含四个文件」的第二次修正**：运行时由 `ViewSessionManager` 创建，不经过该处无法把配置带进新运行时）。
+  - [../src/client/index.ts](../src/client/index.ts)——`autoOpenTab` 门控：`if (adapter.shouldAutoOpenTab()) adapter.openViewTab()`（原为无条件打开，A2）。
+  - [../src/tools/view-tools.ts](../src/tools/view-tools.ts)、[../skills/structured-document-view/SKILL.md](../skills/structured-document-view/SKILL.md)——`reset_view` 的描述与输出说明改为「重置到侧边卡片配置的默认值（未设置时为 Markdown／逻辑图／2 层）」，并优先采用客户端回执里的 `value.currentView`（宿主侧看不到浏览器配置，未送达时按内置默认估计）。这是语义变更后的**描述准确性同步**，不是新增产品规则。
+  - 实现中发现的规格未覆盖细节（已按规格口径处理）：`state.depth` 必须与 `viewDepths[currentView]` 一致（`setView` 既有不变式），否则 `defaultView: 'mindmap'` 时工具栏层级控件与 `get_view_state` 会把已配置的层级报告成「不限」，与画面不一致；`initialViewState()` 同步设置 `depth`。
+- 验证记录：2026-10-10 实现并运行验证——`npm run typecheck` 通过、`npm test`（24 文件 / 181 用例）、`npm run build` 通过（`lib/client.js` 303.50 kB）；新增用例：[../tests/view-settings.spec.ts](../tests/view-settings.spec.ts)（解析：缺失／非法／`0` → `null`／选项与枚举同源／内置默认由默认状态推导／`depth` 不变式）、[../tests/view-settings-runtime.spec.ts](../tests/view-settings-runtime.spec.ts)（新运行时采用配置、A5 不追溯、`reset_view` 采用此刻配置并保留选中、store `reset()`）、[../tests/sidebar-adapter.spec.ts](../tests/sidebar-adapter.spec.ts)（四项设置行声明、读回解析、非法回退、无 `pluginSettings` 能力回退、只读公开快照）、[../tests/client-bundle.spec.ts](../tests/client-bundle.spec.ts)（构建产物中声明四行、`autoOpenTab: false` 不打开页签、无能力时不声明设置行仍自动打开）、[../tests/tools.spec.ts](../tests/tools.spec.ts)（回执 `currentView` 优先、未送达时按内置默认估计）。`select` 行控件可用性：**确认可用**——0.19.1 的 `src/client/SideCardSection.tsx` 中 `FeatureSettingsRows` 对 `toggle.type === 'select'` 渲染 `SelectRow`，插件行经 `valueSource`（`prefs.pluginSettings[<id>]`）取值、经 `onPluginSelectValue` 写回；实际加载的 `lib/client.js`／`lib/client-registry.js` 同样含 `type === "select"`、`pluginBlob`、`onPluginSelectValue`、`aria-haspopup`。**未执行**：真实页面核对（A8 的设置行可见性与关闭卡片后入口消失、以及 A1–A4 的界面观感）需要浏览器交互，本轮未做；宿主侧 `dsh-better-sidebar` 行为以已安装 0.19.1 的源码与产物为准。
 
 ## 差异与验证待办
 
@@ -140,9 +144,12 @@
 - 跨插件测试不等于真实浏览器验证；Mind Elixir 布局、抽屉、焦点和标签生命周期本次未实测。
 - 宿主侧诊断项（本轮范围外，需重启承载会话的实例）：`ViewStateWire` 增加数据源字段、`get_view_state` 投影数据源与连接状态、宿主 capabilities 改为 hello 时求值——留到下一次开发。
 - F010 的 GUI 回归（新窗口首帧、未绑定空状态、无内核环境的示例数据标注）尚未执行；浏览器刷新后即可验证（本轮只改客户端，无需重启宿主）。
+- F011 的真实页面核对尚未执行（A8：设置行出现在「设置 → 侧边卡片」的本插件卡片下、关闭该卡片后设置入口消失；以及 A1–A4 的界面观感）。本轮只改客户端，重建 `lib/client.js` 后刷新浏览器即可核对，无需重启宿主；控件可用性已按 0.19.1 的源码与实际加载产物核实（见 F011 验证记录）。
+- CHANGELOG 的 `## Unreleased` 段仍列着更早已提交但未归版的改动（桥断线退避重连、`set_filter` 改为 AND、指令目录新增），且位置在 `0.3.0` 与 `0.2.0` 之间。本次只追加 `0.4.0` 段，未移动或改写这些条目（避免误归属），发布时由发布提交统一归版。
 
 ## 规格变更记录
 
+- 2026-10-10：F011（侧边卡片设置：默认视图与自动打开）实现完成，包版本提高为 0.4.0（minor）：四项设置（`autoOpenTab`／`defaultView`／`defaultLayout`／`defaultMindmapDepth`）经 better-sidebar 的 `settings.pluginToggles` 声明并持久化在 `pluginSettings['structured-document-view']`，配置默认值作用于**新会话／新运行时**的初始视图状态与 `reset_view`；已存在会话当前状态不追溯；无 `pluginToggles` 能力、键缺失、类型不符或枚举外取值一律回退内置默认。实现中同步了规格未覆盖的两点：`state.depth` 与 `viewDepths[currentView]` 的一致不变式；`reset_view` 的描述与回执 `currentView` 随配置（描述准确性同步）。**未改变** F002「视图只影响怎么看」与 A5「不追溯已存在会话」的语义。
 - 2026-10-10：新增 F011（侧边卡片设置：默认视图与自动打开）及技术契约「配置契约」（写在 [sidebar-integration.md](sidebar-integration.md)）。本版为**待用户确认**的文档增量：仅改维护文档，未改动源码、测试、构建产物或运行配置，包版本不变。字段、持久化位置（`pluginSettings['structured-document-view']`）、软依赖回退与能力差异见 F011 与契约。
 - 2026-10-10：F010（数据源状态机与示例数据边界）实现完成，包版本提高为 0.3.0（minor）：握手前 `connecting` 不渲染任何文档、示例数据只在宿主明确声明无内核时启用并带可见标识、`connecting` 下文档类命令返回 `SOURCE_NOT_READY`；同时修正 F001 边界表述。规格与实现同版，A1–A6 与用例对应关系见 F010 验证记录。
 - 2026-10-10：新增 F010 规格与相关技术契约（仅文档），交用户确认后开发。

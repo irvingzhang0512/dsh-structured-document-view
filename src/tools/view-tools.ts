@@ -625,13 +625,18 @@ export function registerViewTools(ctx: { tools: { register(tool: unknown): () =>
   disposers.push(ctx.tools.register(defineTool({
     name: 'reset_view',
     description:
-      '恢复默认视图：切换回 Markdown 章节阅读、思维导图默认两层、默认布局、清除筛选与聚焦（保留当前选中节点）。'
-      + '适合「恢复默认视图」「回到初始状态」。',
+      '恢复默认视图：重置到侧边卡片设置里的默认视图／布局／思维导图层级'
+      + '（未设置或非法时即内置默认：Markdown、逻辑图、2 层），清除筛选与聚焦'
+      + '（保留当前选中节点）。适合「恢复默认视图」「回到初始状态」。',
     parameters: {},
     output: {
       schema: outputWith({
         ...deliveryEnvelope,
-        currentView: { type: 'string', required: true, description: '重置后的视图（markdown）。' },
+        currentView: {
+          type: 'string',
+          required: true,
+          description: '重置后的视图：由侧边卡片 defaultView 决定（未设置时为 markdown；客户端未连接时按内置默认估计）。',
+        },
       }),
       render: (_args, value) => [{ type: 'text', text: textOf(value as never) }],
     },
@@ -640,7 +645,11 @@ export function registerViewTools(ctx: { tools: { register(tool: unknown): () =>
       const session = requireSession(exec)
       if ('error' in session) return session.error as never
       const outcome = await deps.bridge.dispatch(session.sessionId, { name: 'reset_view' }, ackTimeoutMs)
-      return outcomeResult(outcome, '已恢复默认视图。', '视图客户端未连接，重置操作已排队。', { currentView: 'markdown' })
+      // 重置目标由浏览器端按侧边卡片配置决定，客户端回执里的 currentView 才是
+      // 真实结果；未送达（排队／超时）时按内置默认估计（宿主看不到浏览器配置）。
+      const reset = outcome.ack?.value?.currentView
+      const currentView = typeof reset === 'string' && reset !== '' ? reset : 'markdown'
+      return outcomeResult(outcome, '已恢复默认视图。', '视图客户端未连接，重置操作已排队。', { currentView })
     },
   })))
 

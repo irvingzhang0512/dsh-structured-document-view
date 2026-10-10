@@ -21,6 +21,7 @@ import {
   setZoom,
   toggleOutlineNode,
 } from '../src/shared/view-state.ts'
+import { initialViewState } from '../src/shared/view-settings.ts'
 
 describe('view-state reducers', () => {
   it('setView 切换视图且幂等', () => {
@@ -119,6 +120,19 @@ describe('view-state reducers', () => {
     expect(reset.readerMode).toBe('section')
     expect(reset.viewDepths).toEqual({ markdown: null, mindmap: 2, table: null })
     expect(reset.outlineCollapsedNodeIds).toEqual([])
+  })
+
+  it('resetView 可传入配置默认值（SPEC F011 A9）：目标随配置，仍保留选中', () => {
+    const state = setSelectedNode(createDefaultViewState(), 'node_009')
+    const initial = initialViewState({ autoOpenTab: true, defaultView: 'mindmap', defaultLayout: 'down', defaultMindmapDepth: 0 })
+    const reset = resetView(state, initial)
+    expect(reset.currentView).toBe('mindmap')
+    expect(reset.layout).toBe('down')
+    expect(reset.viewDepths.mindmap).toBeNull()
+    expect(reset.depth).toBeNull()
+    expect(reset.selectedNodeId).toBe('node_009')
+    // 未传 initial 时仍是内置默认（回归）
+    expect(resetView(state).currentView).toBe('markdown')
   })
 })
 

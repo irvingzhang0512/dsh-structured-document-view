@@ -8,6 +8,7 @@
  */
 import { ViewRuntime } from './runtime.ts'
 import { ViewBridgeClient } from './bridge-client.ts'
+import type { ViewDefaults } from '../shared/view-settings.ts'
 
 /** 会话管理器（模块级单例，由客户端 apply 初始化）。 */
 export class ViewSessionManager {
@@ -17,10 +18,23 @@ export class ViewSessionManager {
   private disposed = false
   /** 「打开结构化文档页签」回调（open_tab 命令执行时调用；由 apply 注入）。 */
   private openTabHandler: (() => void) | undefined = undefined
+  /**
+   * 「侧边卡片配置默认值」读取器（SPEC F011；由 apply 注入适配层实现）。
+   * 未注入时运行时用内置默认（软依赖回退）。
+   */
+  private readViewDefaults: (() => ViewDefaults) | undefined = undefined
 
   /** 注入打开视图页签的回调（客户端 apply 创建 adapter 后设置）。 */
   setOpenTabHandler(handler: () => void): void {
     this.openTabHandler = handler
+  }
+
+  /**
+   * 注入配置默认值读取器（客户端 apply 创建 adapter 后设置）。
+   * 必须在创建运行时之前注入：运行时的初始视图状态只在构造时读取一次。
+   */
+  setViewDefaultsReader(reader: () => ViewDefaults): void {
+    this.readViewDefaults = reader
   }
 
   /** 获取（必要时创建）某会话的运行时。 */
@@ -33,6 +47,7 @@ export class ViewSessionManager {
         (message) => this.clientFor(sessionId)?.sendMessage(message),
         undefined,
         () => this.openTabHandler?.(),
+        this.readViewDefaults,
       )
       this.runtimes.set(sessionId, runtime)
     }
