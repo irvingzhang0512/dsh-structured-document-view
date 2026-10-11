@@ -1,5 +1,7 @@
 # 架构设计（Architecture）
 
+目标版技术契约：见 [DSH 0.2.0-rc.2 升级适配](DSH-UPGRADE-20261011.md)（`dsh-upgrade-20261011-v1`，待确认／待实现）。本文原宿主 API 和设置存储说明保留作为当前组合基线；目标版采用该补充中的接口、配置迁移与验收边界，不将旧 API 继续当作目标版可用接口。
+
 > 本文件记录 dsh-structured-document-view 的架构与设计决策（DD）。
 > 需求文档中的假设与 DSH / dsh-better-sidebar 真实 API 冲突之处，以本文件
 > 的决策为准（产品目标不变，实现取舍记录如下）。
