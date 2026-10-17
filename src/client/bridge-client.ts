@@ -8,6 +8,7 @@
  */
 import type { BridgeClientHandlerSet, ClientToHostMessage, ViewStateWire } from '../shared/types.ts'
 import { encodeAck, encodeClientCurrentFile, encodeClientSelectNode, encodeClientState, encodeHello, parseHostMessage } from '../shared/wire.ts'
+import { hostWebSocketUrl } from './host-websocket.ts'
 
 /** 桥升级路径（必须与宿主半区一致）。 */
 const BRIDGE_PATH = '/structured-document-view/ws'
@@ -78,11 +79,9 @@ export class ViewBridgeClient {
 
   private open(): void {
     if (this.closed || this.socket !== null) return
-    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const url = `${proto}//${window.location.host}${BRIDGE_PATH}?sessionId=${encodeURIComponent(this.sessionId)}`
     let socket: WebSocket
     try {
-      socket = new WebSocket(url)
+      socket = new WebSocket(hostWebSocketUrl(BRIDGE_PATH, this.sessionId))
     } catch {
       this.scheduleReconnect()
       return

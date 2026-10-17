@@ -31,7 +31,7 @@ import type { Context } from './context-types.ts'
 export const name = 'dsh-structured-document-view'
 
 /** 挂载前必需的服务：工具注册中心、web 升级面、web 运行时可信主机、技能注册中心。 */
-export const inject = ['tools', 'webServer', 'webRuntime', 'skills']
+export const inject = ['tools', 'webServer', 'connection', 'skills']
 
 /** 桥升级路径（必须与客户端半区一致）。 */
 export const BRIDGE_PATH = '/structured-document-view/ws'
@@ -43,14 +43,11 @@ export const BRIDGE_PATH = '/structured-document-view/ws'
 export function apply(ctx: Context): void {
   const mirror = new ViewMirrorStore()
 
-  // dsh-structured-document 是软依赖（宿主侧经 ctx.get 免 inject 探测）：
-  // 服务存在 → 激活文档集成层（文档快照/选中推送到浏览器，当前文件联动）；
-  // 服务缺失 → 集成层不激活，视图插件回退 Mock 数据源（独立可用）。
+  // 软依赖通过注入生命周期接入；不能把启动时一次探测冻结成永久 Mock。
   let documentIntegrator: HostDocumentIntegrator | undefined
-  const structuredDocumentService = ctx.get('structuredDocument')
   const bridge = new ViewBridgeServer({
     store: mirror,
-    capabilities: { structuredDocument: structuredDocumentService !== undefined },
+    capabilities: { structuredDocument: false },
     onMessage: (sessionId, message) => documentIntegrator?.handleMessage(sessionId, message),
   })
   const removeViewService = ctx.provide('structuredDocumentView', {
@@ -59,15 +56,24 @@ export function apply(ctx: Context): void {
     subscribe: (sessionId: string, listener: (state: ReturnType<ViewMirrorStore['get']>) => void) => mirror.subscribe(sessionId, listener),
     dispatch: (sessionId: string, command: ViewCommand) => bridge.dispatch(sessionId, command),
   })
-  if (structuredDocumentService !== undefined) {
-    documentIntegrator = new HostDocumentIntegrator({
-      service: structuredDocumentService as never,
+  ctx.inject(['structuredDocument'], integrated => {
+    const integrator = new HostDocumentIntegrator({
+      service: integrated.get('structuredDocument') as never,
       bridge,
     })
-  }
+    documentIntegrator = integrator
+    for (const session of bridge.updateCapabilities({ structuredDocument: true })) integrator.syncSession(session)
+    integrated.effect(() => () => {
+      integrator.dispose()
+      if (documentIntegrator === integrator) {
+        documentIntegrator = undefined
+        bridge.updateCapabilities({ structuredDocument: false })
+      }
+    })
+  })
 
   // 与 /api 网关一致的浏览器信任围栏。
-  const fence = (req: IncomingMessage): boolean => isTrustedApiRequest(req, ctx.webRuntime.trustedHosts)
+  const fence = (req: IncomingMessage): boolean => isTrustedApiRequest(req, ctx.connection)
 
   const wss = new WebSocketServer({ noServer: true })
   ctx.effect(() => ctx.webServer.registerUpgrade({

@@ -6,6 +6,7 @@
 import type { Context as CordisContext } from '@deepseek-ai/cordis'
 import type { SkillRegistration } from '@deepseek-ai/dsh-skill'
 import type { IncomingMessage } from 'node:http'
+import type { HostConnectionHandle } from '@deepseek-ai/dsh-client-connection'
 
 /** webServer 服务面（本插件用到的最小集合）。 */
 export interface ViewWebServer {
@@ -15,10 +16,8 @@ export interface ViewWebServer {
   }): () => void
 }
 
-/** webRuntime 服务面（可信主机列表）。 */
-export interface ViewWebRuntime {
-  readonly trustedHosts: readonly string[]
-}
+/** 目标宿主的统一请求信任与认证服务。 */
+export type ViewConnection = Pick<HostConnectionHandle, 'requestRejection'>
 
 /** skills 服务面（技能注册中心，可选）。 */
 export interface ViewSkills {
@@ -33,7 +32,7 @@ export interface ViewTools {
 /** 本插件看到的 Context。 */
 export interface ViewContextShape {
   webServer: ViewWebServer
-  webRuntime: ViewWebRuntime
+  connection: ViewConnection
   skills?: ViewSkills
   tools: ViewTools
   /** cordis 生命周期工具。 */

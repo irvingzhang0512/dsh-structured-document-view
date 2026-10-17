@@ -1,6 +1,6 @@
 {
   "name": "dsh-structured-document-view",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "DSH plugin：基于 dsh-better-sidebar 展示结构化文档的 Markdown / 思维导图 / 表格多视图，通过 View Tool 与中文 Skill 控制展示状态，通过 Document Bridge 与 dsh-structured-document 解耦集成。",
   "type": "module",
   "repository": {
@@ -38,7 +38,8 @@
     "LICENSE"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=20",
+    "dsh": "0.2.1-rc.2"
   },
   "dsh": {
     "bundle": {
@@ -71,16 +72,17 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "mind-elixir": "^5.15.1",
-    "ws": "^8.18.0"
+    "mind-elixir": "5.15.1",
+    "ws": "8.22.0"
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": ">=4.0.2 <5.0.0",
-    "@deepseek-ai/dsh-skill": ">=0.1.2-rc.1 <0.2.0",
-    "@deepseek-ai/dsh-tools": ">=0.1.2-rc.1 <0.2.0",
-    "dsh-better-sidebar": ">=0.19.1 <0.20.0",
+    "@deepseek-ai/cordis": "4.0.5",
+    "@deepseek-ai/dsh-skill": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-tools": "0.2.1-rc.2",
+    "dsh-better-sidebar": "0.28.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "@deepseek-ai/dsh-client-connection": "0.2.1-rc.2"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh-skill": {
@@ -91,20 +93,21 @@
     }
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": "4.0.2",
-    "@deepseek-ai/dsh-llm": "^0.1.5-rc.2",
-    "@deepseek-ai/dsh-scope": "^0.1.5-rc.2",
-    "@deepseek-ai/dsh-skill": "^0.1.2-rc.1",
-    "@deepseek-ai/dsh-tools": "0.1.2-rc.1",
-    "@types/node": "^24.0.0",
-    "@types/react": "^18.3.1",
-    "@types/react-dom": "^18.3.1",
-    "@types/ws": "^8.5.10",
-    "dsh-better-sidebar": "^0.19.1",
-    "react": "^18.2.0",
-    "react-dom": "18.2.0",
-    "tsdown": "^0.22.2",
-    "typescript": "^5.8.0",
-    "vitest": "^4.1.8"
+    "@deepseek-ai/cordis": "4.0.5",
+    "@deepseek-ai/dsh-llm": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-scope": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-skill": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-tools": "0.2.1-rc.2",
+    "@types/node": "24.19.2",
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7",
+    "@types/ws": "8.18.2",
+    "dsh-better-sidebar": "0.28.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "tsdown": "0.23.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.12",
+    "@deepseek-ai/dsh-client-connection": "0.2.1-rc.2"
   }
 }

@@ -49,6 +49,14 @@ export class ViewBridgeServer {
     return (this.sockets.get(sessionId)?.size ?? 0) > 0
   }
 
+  /** Optional services may arrive after the first client handshake. */
+  updateCapabilities(capabilities: { structuredDocument?: boolean }): string[] {
+    this.options.capabilities = { ...capabilities }
+    const sessions = [...this.sockets.keys()]
+    for (const sessionId of sessions) this.sendHelloAck(sessionId)
+    return sessions
+  }
+
   /** 为会话附加一个客户端发送器；返回解除函数。 */
   attach(sessionId: string, sender: Sender): () => void {
     let set = this.sockets.get(sessionId)

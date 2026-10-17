@@ -24,6 +24,17 @@ function makeWire(sessionId: string): ViewStateWire {
 }
 
 describe('ViewBridgeServer', () => {
+  it('文档内核迟到或卸载时向现有客户端重新协商能力', () => {
+    const bridge = new ViewBridgeServer({ store: new ViewMirrorStore(), capabilities: { structuredDocument: false } })
+    const received: string[] = []
+    const detach = bridge.attach('late', message => received.push(message))
+    expect(bridge.updateCapabilities({ structuredDocument: true })).toEqual(['late'])
+    expect(JSON.parse(received[0]!).capabilities.structuredDocument).toBe(true)
+    bridge.updateCapabilities({ structuredDocument: false })
+    expect(JSON.parse(received[1]!).capabilities.structuredDocument).toBe(false)
+    detach()
+    expect(bridge.updateCapabilities({ structuredDocument: true })).toEqual([])
+  })
   it('已连接会话：派发等待 ack', async () => {
     const store = new ViewMirrorStore()
     const bridge = new ViewBridgeServer({ store })
