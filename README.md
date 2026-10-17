@@ -1,115 +1,77 @@
 **English** | [简体中文](README.zh-CN.md)
 
-当前功能与验收以 [docs/SPEC.md](docs/SPEC.md) 为入口；原始需求保留为历史来源，技术契约见规格内的文档索引。功能任务先改规格与相关技术契约，用户明确确认该版文档后再开发；已确认同一版不重复询问。Bug 按已有且不变的预期查源码修复。
-
-
 # dsh-structured-document-view
 
-A DSH (DeepSeek Harness) plugin that adds a **Structured Document** page to the web sidebar on top of `dsh-better-sidebar`. It renders the current structured document in three switchable views — **Markdown**, **Mind Map**, and **Table** — and ships **17 View Tools** plus a bundled **Chinese skill**, so both agents and users can control the *view state* with natural language.
+Display structured documents as Markdown, mind maps, and tables, with view switching, node navigation, hierarchy controls, and filtering.
 
-> View state only — never the document. Every tool and every skill intent changes *how* the document is displayed (view type, depth, layout, filter, expansion, focus, zoom, pan). The document content itself is never modified; editing belongs to the data source (`dsh-structured-document` when installed, or the built-in mock documents).
+## What you can do
 
-## Features
+- Switch between three views of the same document while keeping node IDs and selections aligned.
+- Filter by depth, role, or properties; focus nodes, zoom, and change mind-map layouts.
+- Use the interface or natural language to switch views, navigate sections, and reset the display.
+- Follow document changes without changing business content through view operations.
 
-- **Three views over one document**
-  - `markdown` — heading hierarchy with role labels and property lists;
-  - `mindmap` — powered by [mind-elixir](https://www.npmjs.com/package/mind-elixir) v5 (read-only): expand/collapse, click to select, wheel zoom, drag pan, focus-to-center, and three layouts (`mind` / `logical` / `down`);
-  - `table` — grouped by role with property columns (respects depth and filter).
-- **View state is fully separated from the document** — `currentView / selected / focused / expanded / collapsed / depth / zoom / pan / layout / filter` is pure, immutable reducer state. It only affects *how you look*, never the document.
-- **17 View Tools** cover view switching, section reading, node navigation, layout/depth/filter controls, zoom/fit, command help, and opening the tab. Each tool has a single responsibility and returns a uniform envelope `{ ok, code, message, delivered, queued, ... }`.
-- **Chinese skill included** — installing the plugin auto-registers the `structured-document-view` skill. It understands natural-language intents such as "switch to mind map", "show only two levels", "expand the second topic", "focus the current node", "switch to left-to-right layout", and "restore the default view".
-- **Tab opens automatically (configurable)** — the Structured Document tab opens itself the first time a session becomes active; `open_view_tab` opens/activates it on demand at any time. Under better-sidebar's **Settings → Side card** you can change this plugin's four defaults: auto-open on/off, default view, default mind map layout, and default mind map depth (`0` = unlimited). Defaults apply to new sessions/runtimes and to "restore the default view"; they never rewrite the state an open session already holds. Without better-sidebar (or below 0.12.0) all four fall back to the built-in defaults (on / Markdown / logical / 2 levels).
-- **Node IDs stay identical** — mind map node IDs *are* the document node IDs, so clicks, focus, and expansion map 1:1 to document nodes.
-- **Explicit three-state data source** — before the bridge handshake the page shows an "connecting" empty state (no document is rendered, and sample data is never a stand-in for it). Once the host declares a document kernel the view renders real documents (empty state when nothing is bound); only when the host explicitly reports no kernel does it fall back to the three built-in sample documents, always marked as sample data. The state never moves backwards: a dropped connection keeps the current view and only marks itself as retrying. Installing `dsh-structured-document` switches the view to real documents automatically via `HostBackedDocumentProvider`: the host pushes document snapshots and selection over the bridge, clicks in the view write the selection back, and the better-sidebar current file is linked through lazy binding.
-- **Reuses `dsh-better-sidebar`** — the tab, display area, and lifecycle all come from better-sidebar (optional peer dependency). If it is missing, the host-side tools, bridge, and skill still work; commands are queued and applied automatically once the view opens.
+## Installation
 
-## Quick Start
+The current local version is **0.4.1**, targeting **DSH Desktop 0.2.1-rc.2**. Displaying a tab requires **Better Sidebar 0.28.0**. To view your own documents, also install **dsh-structured-document 0.2.1**. These are optional integrations at the host level, but without the sidebar there is no corresponding display surface, and without the document kernel only clearly labelled sample data is available.
 
-**Requirements**
+As checked on 2026-10-18, the default branch of the [public repository](https://github.com/irvingzhang0512/dsh-structured-document-view) declares **0.2.0**. The version described here has not been pushed or publicly released. Obtain the complete prebuilt `.tgz` from the maintainer; there is no public download link for this version yet.
 
-- DSH web (Node >= 20);
-- `dsh-better-sidebar` — soft dependency, recommended (provides the sidebar page and current-file linking; the host-side tools, bridge, and skill still work without it);
-- `dsh-structured-document` — optional; install to show real structured documents. Without it the host reports "no document kernel" and the view shows the built-in sample documents, always marked as such.
+1. Install and enable the display dependencies above, checking their versions.
+2. Open **Plugins → Add plugin → Install third-party plugin**, enter this archive's absolute local path, check its package name and version, and enable it. Restart DSH when prompted.
+3. Enter a workspace session and open **Structured Document** from the sidebar's **+** menu. By default, the tab also opens when a session is first activated.
 
-```bash
-# View only — sample documents appear when no document kernel is installed
-dsh plugin --profile web add dsh-structured-document-view@latest
+See the [compatibility record](docs/DSH-UPGRADE-20261017.md) for three-view checks against a real isolated document. Sample rendering, queued commands, and public-source installation are separate verification scopes.
 
-# Recommended: pair with the real document data source
-dsh plugin --profile web add dsh-structured-document@latest
-```
+## Configuration
 
-After installing, refresh the browser: the sidebar "+" menu shows the **Structured Document** page, and it opens automatically for the active session. Until the bridge handshake completes the page shows "connecting" and renders no document at all. With `dsh-structured-document`, open a `.md` / `.markdown` structured document in the sidebar to start rendering the real one — the sample-data switcher disappears, and edits made through `dsh-structured-document` tools refresh the view live. Without it, the built-in sample documents are shown with a visible "sample data" marker.
+Defaults are sufficient to start. In Better Sidebar's **Settings → Sidebar cards**, find this plugin:
 
-## View Tools
+| Setting | Default | Effect |
+|---|---|---|
+| Automatically open the view tab | Enabled | Open on first session activation |
+| Default view for new sessions | Markdown | Initial display |
+| Default mind-map layout | Logical, expanding right | Initial layout |
+| Default mind-map depth | 2 | `0` means unlimited |
 
-All tools are scoped to the calling agent's session and only mutate view state. Commands are dispatched to the browser client over a WebSocket bridge; if the view is not open they are queued and applied automatically when it opens. `get_view_state` reads the host state mirror directly.
+Better Sidebar saves these preferences. They apply to new sessions/runtimes and **Reset view**, without forcibly changing existing session views. Missing values use these defaults.
 
-| Tool | Parameters | Purpose |
-| --- | --- | --- |
-| `open_view_tab` | — | Open / activate the Structured Document sidebar tab |
-| `set_view` | `view`: `markdown` \| `mindmap` \| `table` | Switch the current view |
-| `get_view_state` | — | Current view state plus the document outline with Node IDs |
-| `expand_node` | `node?` | Expand a node (explicit expansion can exceed the depth limit) |
-| `collapse_node` | `node?` | Collapse a node's subtree |
-| `focus_node` | `node?` | Focus a node (center it and select it) |
-| `open_node` | `node?` | Open a node and all descendants in the Markdown section reader |
-| `set_reader_mode` | `mode`: `section` \| `document` | Read the current section or the whole document |
-| `navigate_section` | `direction`: `previous` \| `next` | Move between sibling sections |
-| `set_zoom` | `zoom?` / `factor?` | Set or adjust mind-map zoom |
-| `fit_view` | — | Fit currently visible content |
-| `reset_viewport` | — | Reset zoom and center the root |
-| `get_view_help` | `level?` | List natural-language command examples |
-| `set_depth` | `depth`: `0`–`20` | Show only the first N levels (`0` / `null` = unlimited; root is level 1) |
-| `set_layout` | `layout`: `mind` \| `logical` \| `down` | Mind map layout: both sides / right side / top-down |
-| `set_filter` | `filter?` | Filter by role or properties; omit or pass `{}` to clear |
-| `reset_view` | — | Restore the default view (Markdown, all levels, no filter) while keeping the current selection |
+## First use
 
-For `expand_node` / `collapse_node` / `focus_node`, the `node` parameter accepts:
+1. With the document kernel enabled, ask the Agent to list actual Markdown files in your workspace and choose one. If none exists, explicitly request a new thinking-profile document with three sections, then check its actual saved path.
+2. Open the chosen file in Better Sidebar, then open **Structured Document**. Check the file identified in the header. If the workbench is in use, its fixed target takes precedence.
+3. Switch to **Mind Map**, then **Table**, and confirm both show the same document.
+4. Ask: “Switch to a mind map and show two levels.” Check the view and depth. The source Markdown should remain unchanged by these view operations.
 
-1. a **Node ID** (`node_023` — the most reliable; get it from `get_view_state`'s outline);
-2. the alias **`current`** (the default; equivalent to `@selected` / `@current` / `@focused`);
-3. a **title** (exact match first, then substring match; multiple candidates return a candidate list instead of guessing).
+## Common tasks
 
-## Skill
+| Task | Action | Result |
+|---|---|---|
+| Inspect the hierarchy | Select a mind map and adjust depth | Nodes at the requested levels |
+| Review task properties | Select a table and filter by an existing role | Matching nodes and properties |
+| Read a section | Select it in the outline or give the Agent its exact title | The corresponding section/node is focused |
+| Restore the display | Click **Reset view** | Current configured view, layout, and depth defaults |
 
-The bundled Chinese skill `structured-document-view` is registered automatically when the plugin mounts — installing the plugin installs the skill. It maps Chinese natural-language intents to tool sequences (English translations shown for reference):
+## Boundaries
 
-| Intent | Tool call |
-| --- | --- |
-| Switch to mind map | `set_view(view="mindmap")` |
-| Show it as a table | `set_view(view="table")` |
-| Show only two levels | `set_depth(2)` |
-| Expand the second topic | `get_view_state` → `expand_node(node=<Node ID>)` |
-| Collapse everything else | `get_view_state` → `collapse_node` per sibling |
-| Focus the current node | `focus_node()` (defaults to the current selection) |
-| Switch to left-to-right layout | `set_layout(layout="logical")` |
-| Restore the default view | `reset_view()` |
-| Show only to-dos | `set_filter(filter={ role: "action_item" })` / `{ role: "task" }` |
-| Clear the filter | `set_filter({})` |
+- Before the connection is ready, the page shows a connection state. A kernel with no bound document gives an empty state, not a sample pretending to be your file.
+- Labelled samples appear only when the host explicitly reports that no document kernel is present.
+- Registered tools do not imply a connected interface. Queued commands have not completed; a timeout does not prove that an operation did not occur.
+- Editing content belongs to the document plugin. The table is not a separate spreadsheet editor.
+- Further Desktop workflow integration remains proposed or unimplemented in [SPEC](docs/SPEC.md).
 
-## Development
+## Troubleshooting
 
-```bash
-npm install
-npm run typecheck   # type check (inlines the mind-elixir CSS first)
-npm test            # Vitest unit tests
-npm run build       # build lib/ (host tsc + client tsdown bundle)
-npm pack            # package the publishable artifact
-```
+### The tab is missing or stays at “connecting”
 
-## Documentation
+Check that Better Sidebar, this plugin, and DSH have matching versions and are enabled. Return to the calling session and open the tab from **+**. If it still cannot connect, inspect plugin runtime status before repeating a view command.
 
-All docs live under `docs/` (written in Chinese):
+### It shows samples instead of my file
 
-- [Usage guide](docs/usage.md)
-- [Architecture & design decisions](docs/architecture.md)
-- [Views & renderers](docs/views.md)
-- [View tools](docs/tools.md)
-- [View skill](docs/skill.md)
-- [Document provider interface](docs/document-provider.md)
-- [Sidebar integration](docs/sidebar-integration.md)
+Check that the document kernel is installed and enabled, and inspect the source shown in the header. Open a real file or bind a workbench target, then verify its actual path.
 
-## License
+## More documentation
 
-MIT — see [LICENSE](LICENSE).
+- [User guide](docs/usage.md), [view guide](docs/views.md).
+- [Tools](docs/tools.md), [bundled skill](skills/structured-document-view/SKILL.md).
+- [Current specification](docs/SPEC.md), [changelog](CHANGELOG.md), [architecture](docs/architecture.md).
