@@ -31,7 +31,7 @@ type SidebarSettingToggle = NonNullable<NonNullable<TabDescriptor['settings']>['
 export const VIEW_TAB_TYPE = 'structured-document-view'
 
 /** 本插件侧边栏页的展示名。 */
-export const VIEW_TAB_TITLE = '结构化文档'
+export const VIEW_TAB_TITLE = 'Irving · 结构化文档视图'
 
 /**
  * 四项设置行（键与 `pluginSettings['structured-document-view']` 逐字一致）。

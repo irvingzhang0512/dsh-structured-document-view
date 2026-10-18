@@ -157,3 +157,24 @@
 - 2026-10-10：新增 F010 规格与相关技术契约（仅文档），交用户确认后开发。
 
 - 2026-10-03：首次从现行文档、实现和现有测试建立功能基线；仅修改维护文档，未变更 API、存储或运行逻辑。
+
+## F015 插件列表与详情的显示名称
+
+- 文档版：office-suite-implementation-20261018-v1；用户在本会话完整引用该实施方案并明确 PLEASE IMPLEMENT THIS PLAN，确认同版名称、简介、版本、组合和验收。原有其他待确认功能不在授权范围。
+- 实现状态：已实现；验证另记。
+- 场景与预期：中文显示「Irving · 结构化文档视图」，英文显示「Irving · Structured Document Views」；保留完整包名 dsh-structured-document-view 与全部运行标识。
+- 中文简介：为结构化文档提供 Markdown、思维导图和表格展示，支持切换视图、定位与筛选。
+- 英文简介：Display structured documents as Markdown, mind maps, and tables, with view switching, navigation, and filtering.
+- 技术契约：导出 locale/en.json 与 locale/zh.json 的 meta.title／meta.description；exports["./locale/*.json"] 指向对应资源，files 分发 locale，package.description 使用中文简介兜底。客户端设置／详情标题同步；功能导航不强制改名。
+- 验收：目标宿主从固定 tgz 解析两语言名称／简介，原生列表、详情、成员行一致；无新增布局溢出，原工具／配置／存储保持。新套件成员在隔离验证后交付日常。
+
+## F016 统一版本与固定交付
+
+- 实现状态：已实现；依据同版已确认实施方案。
+- 包版本统一为 0.2.1-rc.2+rev.1；宿主与官方 peers 仍为实际要求的原版本。完整字符串、源码 SHA 和产物散列同时校验，不能使用忽略 build metadata 的 SemVer 判断修订升级。
+- Chatty／Automation 的原比较接口保留，规范后缀改为 +rev.N，N 为无前导零的安全正整数；跨官方基线拒绝。旧版本仅由明确迁移映射及原锁／散列接管，不能把旧后缀 .1 与 rev.1 当作无需更新。
+- 本包可独立安装，也可由 dsh-office-bundle 携带；套件采用 cordis:group 保留本包原条目 id、config、inject。总开关卸载全部成员，重开恢复各自 disabled；原单独 Bundle 停用选择在接管时迁移为本条目 disabled。独立入口与套件入口不能重复组装。
+- 配置／数据：没有业务字段改名或存储搬迁；套件接管仅处理组合选择与既有 disabled 字段，保留未知配置、工具引用、文档和凭据。迁移 CAS／备份／冲突／回滚由根维护入口执行。
+- 验收：完整产物、版本迁移、原功能回归；成员还需唯一实例、旧配置命中、总／子开关与业务资料保留。具体记录见 VERIFICATION-OFFICE-20261018.md（完成后生成）。
+
+- 本次自动验证：185项测试通过，类型／构建或Chatty客户端／lint通过；原生固定包与日常交付尚待本次后续验收，不能复用历史结果。

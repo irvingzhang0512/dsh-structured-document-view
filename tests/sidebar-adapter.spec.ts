@@ -84,7 +84,7 @@ describe('SidebarAdapter 设置行声明', () => {
   it('openViewTab 用本插件页标识打开页签', () => {
     const { service, opened } = makeService({ features: ['pluginSettings'] })
     makeAdapter(service).openViewTab()
-    expect(opened).toEqual([{ type: VIEW_TAB_TYPE, id: VIEW_TAB_TYPE, title: '结构化文档' }])
+    expect(opened).toEqual([{ type: VIEW_TAB_TYPE, id: VIEW_TAB_TYPE, title: 'Irving · 结构化文档视图' }])
   })
 })
 

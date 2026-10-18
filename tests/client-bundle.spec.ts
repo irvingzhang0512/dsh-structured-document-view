@@ -124,7 +124,7 @@ describe.skipIf(!existsSync(BUNDLE_PATH))('lib/client.js 构建产物冒烟', ()
     expect(tabs).toHaveLength(1)
     expect(tabs[0]!.id).toBe('structured-document-view')
     // 标题是惰性函数（DSH 侧边栏契约），要求返回静态字符串。
-    expect((tabs[0]!.title as () => string)()).toBe('结构化文档')
+    expect((tabs[0]!.title as () => string)()).toBe('Irving · 结构化文档视图')
     expect(opened).toHaveLength(1)
     expect((opened[0] as { type: string }).type).toBe('structured-document-view')
 

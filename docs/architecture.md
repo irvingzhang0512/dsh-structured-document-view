@@ -236,3 +236,7 @@ dsh-structured-document（宿主）                dsh-structured-document-view
 - 工具用注入 fake deps 测试（真实 `registerViewTools`）；
 - Skill 契约 + 端到端：真实工具 + 真实桥 + 真实 ViewRuntime 跑通中文意图链路；
 - 浏览器组件（mindmap / React）不在 Node 单测，由构建 + 类型检查兜底。
+
+## 2026-10-18 统一展示与套件交付契约
+
+依据用户已确认的 office-suite-implementation-20261018-v1。Irving · 结构化文档视图／Irving · Structured Document Views，包 dsh-structured-document-view 统一 0.2.1-rc.2+rev.1。展示资源通过 locale 导出提供；原条目 id、服务／工具／客户端身份、配置及存储保持。组合分组为 dsh-office-bundle-members；保留本成员原始 patch 行，用户覆盖继续按原 id 命中；子开关不因总开关恢复而重置。版本按完整字符串与固定散列核对；本节不授权原先待确认的业务扩展。

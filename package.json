@@ -1,7 +1,7 @@
 {
   "name": "dsh-structured-document-view",
-  "version": "0.4.1",
-  "description": "DSH plugin：基于 dsh-better-sidebar 展示结构化文档的 Markdown / 思维导图 / 表格多视图，通过 View Tool 与中文 Skill 控制展示状态，通过 Document Bridge 与 dsh-structured-document 解耦集成。",
+  "version": "0.2.1-rc.2+rev.1",
+  "description": "为结构化文档提供 Markdown、思维导图和表格展示，支持切换视图、定位与筛选。",
   "type": "module",
   "repository": {
     "type": "git",
@@ -22,7 +22,8 @@
       "default": "./lib/client.js"
     },
     "./package.json": "./package.json",
-    "./cordis.patch.yml": "./cordis.patch.yml"
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./locale/*.json": "./locale/*.json"
   },
   "files": [
     "lib",
@@ -35,7 +36,8 @@
     "cordis.patch.yml",
     "README.md",
     "CHANGELOG.md",
-    "LICENSE"
+    "LICENSE",
+    "locale"
   ],
   "engines": {
     "node": ">=20",

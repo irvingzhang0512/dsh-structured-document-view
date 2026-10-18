@@ -1,6 +1,6 @@
 [English](README.md) | **简体中文**
 
-# dsh-structured-document-view
+# Irving · 结构化文档视图
 
 为结构化文档提供 Markdown、思维导图和表格展示，支持切换视图、定位节点、展开层级与筛选内容。
 
@@ -13,7 +13,7 @@
 
 ## 安装
 
-当前本地版本 **0.4.1**，适配 **DSH Desktop 0.2.1-rc.2**。实际显示页签需要 **Better Sidebar 0.28.0**；查看自己的文档还需 **dsh-structured-document 0.2.1**。这两项在技术上是可选集成，但缺少侧边栏就没有对应展示区域，缺少文档内核只会提供明确标识的示例数据。
+当前本地版本 **0.2.1-rc.2+rev.1**，适配 **DSH Desktop 0.2.1-rc.2**。实际显示页签需要 **Better Sidebar 0.28.0**；查看自己的文档还需 **dsh-structured-document 0.2.1**。这两项在技术上是可选集成，但缺少侧边栏就没有对应展示区域，缺少文档内核只会提供明确标识的示例数据。
 
 截至 2026-10-18，[公开源码仓库](https://github.com/irvingzhang0512/dsh-structured-document-view)默认分支包版本为 **0.2.0**，本页版本尚未公开推送或发布。先向维护者获取当前版本的完整预构建 `.tgz`，目前没有本版公开下载链接。
 
@@ -75,3 +75,8 @@
 - [使用指南](docs/usage.md)、[各视图说明](docs/views.md)。
 - [工具参考](docs/tools.md)、[捆绑技能](skills/structured-document-view/SKILL.md)。
 - [当前规格](docs/SPEC.md)、[更新记录](CHANGELOG.md)、[架构](docs/architecture.md)。
+
+
+## 办公套件
+
+本组件也包含在 **Irving · 办公套件**（`dsh-office-bundle`）中，版本 **0.2.1-rc.2+rev.1**。组合使用时安装套件；单独使用时安装本包，避免同时启用两种组合入口。套件总开关停用四个组件，重新开启保留各自子开关；停用或卸载不删除文档和设置。已有安装通过维护者的固定包接管流程切换。

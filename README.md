@@ -1,6 +1,6 @@
 **English** | [简体中文](README.zh-CN.md)
 
-# dsh-structured-document-view
+# Irving · 结构化文档视图
 
 Display structured documents as Markdown, mind maps, and tables, with view switching, node navigation, hierarchy controls, and filtering.
 
@@ -13,7 +13,7 @@ Display structured documents as Markdown, mind maps, and tables, with view switc
 
 ## Installation
 
-The current local version is **0.4.1**, targeting **DSH Desktop 0.2.1-rc.2**. Displaying a tab requires **Better Sidebar 0.28.0**. To view your own documents, also install **dsh-structured-document 0.2.1**. These are optional integrations at the host level, but without the sidebar there is no corresponding display surface, and without the document kernel only clearly labelled sample data is available.
+The current local version is **0.2.1-rc.2+rev.1**, targeting **DSH Desktop 0.2.1-rc.2**. Displaying a tab requires **Better Sidebar 0.28.0**. To view your own documents, also install **dsh-structured-document 0.2.1**. These are optional integrations at the host level, but without the sidebar there is no corresponding display surface, and without the document kernel only clearly labelled sample data is available.
 
 As checked on 2026-10-18, the default branch of the [public repository](https://github.com/irvingzhang0512/dsh-structured-document-view) declares **0.2.0**. The version described here has not been pushed or publicly released. Obtain the complete prebuilt `.tgz` from the maintainer; there is no public download link for this version yet.
 
@@ -75,3 +75,8 @@ Check that the document kernel is installed and enabled, and inspect the source 
 - [User guide](docs/usage.md), [view guide](docs/views.md).
 - [Tools](docs/tools.md), [bundled skill](skills/structured-document-view/SKILL.md).
 - [Current specification](docs/SPEC.md), [changelog](CHANGELOG.md), [architecture](docs/architecture.md).
+
+
+## 办公套件
+
+本组件也包含在 **Irving · 办公套件**（`dsh-office-bundle`）中，版本 **0.2.1-rc.2+rev.1**。组合使用时安装套件；单独使用时安装本包，避免同时启用两种组合入口。套件总开关停用四个组件，重新开启保留各自子开关；停用或卸载不删除文档和设置。已有安装通过维护者的固定包接管流程切换。
