@@ -95,6 +95,7 @@ export const PLUGIN_STYLE = `
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: auto;
 }
 .sdv-empty {
   display: flex;
@@ -242,7 +243,7 @@ export const PLUGIN_STYLE = `
 /* 思维导图视图 */
 .sdv-mindmap {
   flex: 1;
-  min-height: 0;
+  min-height: 260px;
   display: flex;
   flex-direction: column;
 }

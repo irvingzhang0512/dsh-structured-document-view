@@ -23,6 +23,7 @@ import type { ViewCommand } from '../../shared/types.ts'
 import type { CommandAckPayload, MindMapViewportController } from '../runtime.ts'
 import { visibilityDelta } from '../../shared/viewport.ts'
 import { MIND_ELIXIR_CSS } from '../generated/mind-elixir-style.ts'
+import { fitVisibleMindmap } from './fit-mindmap.ts'
 
 /** 主题（浅色，贴合 DSH Web 界面）。 */
 const LIGHT_THEME = {
@@ -156,7 +157,7 @@ export function MindMapView(props: {
       if (!disposed) onViewStateChange({ pan: { x: data.dx, y: data.dy } })
     })
 
-    mind.scaleFit()
+    let fitted = fitVisibleMindmap(mind,container.getBoundingClientRect())
 
     const selectAndLocate = async (nodeId: string, mode: 'visible' | 'center'): Promise<CommandAckPayload> => {
       const request = ++selectionRequestRef.current
@@ -191,7 +192,8 @@ export function MindMapView(props: {
         return { ok: true, code: 'OK', message: `已缩放到 ${Math.round(zoom * 100)}%。`, value: { zoom } }
       },
       fitView: async () => {
-        mind.scaleFit()
+        if(!fitVisibleMindmap(mind,container.getBoundingClientRect()))return {ok:false,code:'INTERNAL_ERROR',message:'导图画布尚无可用尺寸，请展开面板后重试。'}
+        fitted=true
         await nextFrame()
         return { ok: true, code: 'OK', message: '已显示当前全部可见内容。', value: { zoom: currentZoomRef.current } }
       },
@@ -205,6 +207,7 @@ export function MindMapView(props: {
     const unregisterViewport = onViewportReady(controller)
 
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => {
+      if(!fitted)fitted=fitVisibleMindmap(mind,container.getBoundingClientRect())
       const selected = selectedNodeRef.current
       if (selected !== null) void selectAndLocate(selected, 'visible')
     })
