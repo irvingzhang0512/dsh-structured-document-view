@@ -1,5 +1,7 @@
 **English** | [简体中文](README.zh-CN.md)
 
+> OpenSpec 文档入口：[迁移索引](openspec/MIGRATION.md)。后续开发与管理统一使用 `openspec/specs` 和 `openspec/changes`；旧 `docs/SPEC.md` 与原始需求冻结保留，个人项目资料本轮保持原样，旧文中的“可编辑规格”入口由此替代。新功能先审阅具体方案并确认，再实施与验证；历史资料不双写。
+
 # Irving · Structured Document Views
 
 Display structured documents as Markdown, mind maps, and tables, with view switching, node navigation, hierarchy controls, and filtering.
@@ -58,7 +60,7 @@ Better Sidebar saves these preferences. They apply to new sessions/runtimes and 
 - Labelled samples appear only when the host explicitly reports that no document kernel is present.
 - Registered tools do not imply a connected interface. Queued commands have not completed; a timeout does not prove that an operation did not occur.
 - Editing content belongs to the document plugin. The table is not a separate spreadsheet editor.
-- Further Desktop workflow integration remains proposed or unimplemented in [SPEC](docs/SPEC.md).
+- Further Desktop workflow integration remains proposed or unimplemented in [SPEC](openspec/MIGRATION.md).
 
 ## Troubleshooting
 
@@ -74,7 +76,7 @@ Check that the document kernel is installed and enabled, and inspect the source 
 
 - [User guide](docs/usage.md), [view guide](docs/views.md).
 - [Tools](docs/tools.md), [bundled skill](skills/structured-document-view/SKILL.md).
-- [Current specification](docs/SPEC.md), [changelog](CHANGELOG.md), [architecture](docs/architecture.md).
+- [Current specification](openspec/MIGRATION.md), [changelog](CHANGELOG.md), [architecture](docs/architecture.md).
 
 
 ## Office Suite

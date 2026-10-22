@@ -1,5 +1,9 @@
 # 架构设计（Architecture）
 
+## Desktop 工作流目标契约（待确认／待实现）
+
+新增 [discussion-desktop-workflows-20261014-v1](DESKTOP-WORKFLOWS-20261014.md)，承接 SPEC F012–F014：原生传输、每次 hello 的真实来源与绑定、宿主 fixed 空态、来源投影、17 工具／四项原 prefs 的三场景回归。本版相关预期优先于下方旧升级草案；具体文档待确认，未实现协议或重写 prefs。
+
 目标版技术契约：见 [DSH 0.2.0-rc.2 升级适配](DSH-UPGRADE-20261011.md)（`dsh-upgrade-20261011-v1`，待确认／待实现）。本文原宿主 API 和设置存储说明保留作为当前组合基线；目标版采用该补充中的接口、配置迁移与验收边界，不将旧 API 继续当作目标版可用接口。
 
 > 本文件记录 dsh-structured-document-view 的架构与设计决策（DD）。
@@ -236,6 +240,7 @@ dsh-structured-document（宿主）                dsh-structured-document-view
 - 工具用注入 fake deps 测试（真实 `registerViewTools`）；
 - Skill 契约 + 端到端：真实工具 + 真实桥 + 真实 ViewRuntime 跑通中文意图链路；
 - 浏览器组件（mindmap / React）不在 Node 单测，由构建 + 类型检查兜底。
+
 
 ## 2026-10-18 统一展示与套件交付契约
 

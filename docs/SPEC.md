@@ -1,5 +1,9 @@
 # dsh-structured-document-view 当前功能规格
 
+## 本次 Desktop 工作流文档版
+
+文档版：`discussion-desktop-workflows-20261014-v1`（2026-10-14）。本次先落成[目标技术契约](DESKTOP-WORKFLOWS-20261014.md)，**具体文件待用户确认**；F012–F014 与 F001–F011 的相关目标适配待实现。旧包 0.4.0、历史实现及证据保留，新组合未验证；本版相关契约优先于 2026-10-11 历史升级草案。
+
 本次升级文档版：`dsh-upgrade-20261011-v1`（2026-10-11，待用户确认）。F001–F011 的目标宿主适配与迁移验收见 [DSH 升级适配契约](DSH-UPGRADE-20261011.md)；本次变更待实现，尚未通过目标版本验证。其余功能与原有待确认设计保持原状态，下面的历史证据不自动证明 DSH 0.2.0-rc.2 兼容。
 
 基线日期：2026-10-03；包版本：0.2.0；核对的源码提交：`4059ec3e8f378f4c19c92143f2020b60d3c05d01`。此提交是首次整理前的实现基线，后续文档提交不提高包版本。
@@ -139,6 +143,33 @@
   - 实现中发现的规格未覆盖细节（已按规格口径处理）：`state.depth` 必须与 `viewDepths[currentView]` 一致（`setView` 既有不变式），否则 `defaultView: 'mindmap'` 时工具栏层级控件与 `get_view_state` 会把已配置的层级报告成「不限」，与画面不一致；`initialViewState()` 同步设置 `depth`。
 - 验证记录：2026-10-10 实现并运行验证——`npm run typecheck` 通过、`npm test`（24 文件 / 181 用例）、`npm run build` 通过（`lib/client.js` 303.50 kB）；新增用例：[../tests/view-settings.spec.ts](../tests/view-settings.spec.ts)（解析：缺失／非法／`0` → `null`／选项与枚举同源／内置默认由默认状态推导／`depth` 不变式）、[../tests/view-settings-runtime.spec.ts](../tests/view-settings-runtime.spec.ts)（新运行时采用配置、A5 不追溯、`reset_view` 采用此刻配置并保留选中、store `reset()`）、[../tests/sidebar-adapter.spec.ts](../tests/sidebar-adapter.spec.ts)（四项设置行声明、读回解析、非法回退、无 `pluginSettings` 能力回退、只读公开快照）、[../tests/client-bundle.spec.ts](../tests/client-bundle.spec.ts)（构建产物中声明四行、`autoOpenTab: false` 不打开页签、无能力时不声明设置行仍自动打开）、[../tests/tools.spec.ts](../tests/tools.spec.ts)（回执 `currentView` 优先、未送达时按内置默认估计）。`select` 行控件可用性：**确认可用**——0.19.1 的 `src/client/SideCardSection.tsx` 中 `FeatureSettingsRows` 对 `toggle.type === 'select'` 渲染 `SelectRow`，插件行经 `valueSource`（`prefs.pluginSettings[<id>]`）取值、经 `onPluginSelectValue` 写回；实际加载的 `lib/client.js`／`lib/client-registry.js` 同样含 `type === "select"`、`pluginBlob`、`onPluginSelectValue`、`aria-haspopup`。**未执行**：真实页面核对（A8 的设置行可见性与关闭卡片后入口消失、以及 A1–A4 的界面观感）需要浏览器交互，本轮未做；宿主侧 `dsh-better-sidebar` 行为以已安装 0.19.1 的源码与产物为准。
 
+## F012 Desktop 传输、每会话握手与重连
+
+- 实现状态：待实现；承接 F001／F006／F007／F010。
+- 场景与预期：通过原生公开 URL／会话／侧边栏接口提供每会话 runtime；首次与重连强制推真实文档、选中、绑定和来源状态，不被旧去重键吞掉。
+- 边界与异常：connecting、真实空态与示例数据分开；命令留在调用会话，发送、排队、确认和超时不同；源服务重挂载及时刷新能力，不凭 Context 引用相等判断。
+- 验收条件：真实 dsh-app 传输和 Origin 检查；客户端先启动、源恢复／摘除、两会话、重连与多窗口、native／底部标签通过；已保存文件的视图打开失败明确反馈。
+- 实现依据：尚无本版实现；[技术契约](DESKTOP-WORKFLOWS-20261014.md) 第 1／2 节。
+- 验证记录：本版只写文档，无目标运行测试。
+
+## F013 宿主绑定所有权与来源投影
+
+- 实现状态：待实现；承接 F001／F002／F010。
+- 场景与预期：跟随宿主 getBindingState；fixed 的文档／空态不接受浏览材料引起的隐式改绑；hello／document／get_view_state 投影真实 binding 与 data source。
+- 边界与异常：移除依靠 window 全局标记的所有权判断；无 fixed owner 时独立视图跟随保持；例子不冒充真实稿，另一文档同 node ID 不继承旧选中。
+- 验收条件：记录／纪要、项目主文档浏览材料后目标不变；清目标仍为空；重连与内核变化正确刷新；canonical 和模型文本都可得源文件／绑定模式及真实确认结果。
+- 实现依据：尚无本版实现；[公开投影契约](DESKTOP-WORKFLOWS-20261014.md) 第 1–3 节。
+- 验证记录：未执行本版协议实现或 Desktop 验收。
+
+## F014 三场景视图与原设置回归
+
+- 实现状态：待实现；本次主要为目标适配与集成验收，保留 F003–F011 已有产品规则。
+- 场景与预期：17 工具支持 thinking、会议双稿、project 的阅读／过滤／定位；四项设置继续由 better-sidebar 原 prefs 维护，新 runtime 和 reset_view 使用当前默认。
+- 边界与异常：表格视图不成为 Excel 编辑器；视图操作不改业务正文；旧值／未知 prefs 保留，不追溯重置已打开会话，关闭卡片不销毁文档内核。
+- 验收条件：三视图／章节／布局／编辑和现有工具回归；同名编号按章节定位；四设置保存／重置与原生入口通过；浅深色、窄栏、键盘、标签销毁检查。
+- 实现依据：尚无本版集成实现／证据；[设置与场景契约](DESKTOP-WORKFLOWS-20261014.md) 第 4／5 节。
+- 验证记录：旧 Web 用例不作为本版原生界面通过，待实际执行。
+
 ## 差异与验证待办
 
 - AGENTS／README 等旧数量需统一为注册表实际的 17 个工具。
@@ -151,12 +182,15 @@
 
 ## 规格变更记录
 
+- 2026-10-14：新增 F012–F014 与 `discussion-desktop-workflows-20261014-v1` 传输／绑定／来源与三场景回归契约；具体文档待确认。未改源码、测试实现、prefs、构建产物和 0.4.0 包版本。
+
 - 2026-10-10：F011（侧边卡片设置：默认视图与自动打开）实现完成，包版本提高为 0.4.0（minor）：四项设置（`autoOpenTab`／`defaultView`／`defaultLayout`／`defaultMindmapDepth`）经 better-sidebar 的 `settings.pluginToggles` 声明并持久化在 `pluginSettings['structured-document-view']`，配置默认值作用于**新会话／新运行时**的初始视图状态与 `reset_view`；已存在会话当前状态不追溯；无 `pluginToggles` 能力、键缺失、类型不符或枚举外取值一律回退内置默认。实现中同步了规格未覆盖的两点：`state.depth` 与 `viewDepths[currentView]` 的一致不变式；`reset_view` 的描述与回执 `currentView` 随配置（描述准确性同步）。**未改变** F002「视图只影响怎么看」与 A5「不追溯已存在会话」的语义。
 - 2026-10-10：新增 F011（侧边卡片设置：默认视图与自动打开）及技术契约「配置契约」（写在 [sidebar-integration.md](sidebar-integration.md)）。本版为**待用户确认**的文档增量：仅改维护文档，未改动源码、测试、构建产物或运行配置，包版本不变。字段、持久化位置（`pluginSettings['structured-document-view']`）、软依赖回退与能力差异见 F011 与契约。
 - 2026-10-10：F010（数据源状态机与示例数据边界）实现完成，包版本提高为 0.3.0（minor）：握手前 `connecting` 不渲染任何文档、示例数据只在宿主明确声明无内核时启用并带可见标识、`connecting` 下文档类命令返回 `SOURCE_NOT_READY`；同时修正 F001 边界表述。规格与实现同版，A1–A6 与用例对应关系见 F010 验证记录。
 - 2026-10-10：新增 F010 规格与相关技术契约（仅文档），交用户确认后开发。
 
 - 2026-10-03：首次从现行文档、实现和现有测试建立功能基线；仅修改维护文档，未变更 API、存储或运行逻辑。
+
 
 ## F015 插件列表与详情的显示名称
 

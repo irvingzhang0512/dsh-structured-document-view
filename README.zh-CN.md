@@ -1,5 +1,7 @@
 [English](README.md) | **简体中文**
 
+> OpenSpec 文档入口：[迁移索引](openspec/MIGRATION.md)。后续开发与管理统一使用 `openspec/specs` 和 `openspec/changes`；旧 `docs/SPEC.md` 与原始需求冻结保留，个人项目资料本轮保持原样，旧文中的“可编辑规格”入口由此替代。新功能先审阅具体方案并确认，再实施与验证；历史资料不双写。
+
 # Irving · 结构化文档视图
 
 为结构化文档提供 Markdown、思维导图和表格展示，支持切换视图、定位节点、展开层级与筛选内容。
@@ -58,7 +60,7 @@
 - 只有宿主明确没有文档内核时才展示带「示例数据」标识的内置文档。
 - 工具可能已注册，但界面尚未连接。已排队不等于已执行，超时也不代表操作没有发生。
 - 内容修改属于文档插件；表格视图不是独立电子表格编辑器。
-- 更完整的 Desktop 三场景协作仍有待确认／待实现设计，见 [当前规格](docs/SPEC.md)，不属于本版新增承诺。
+- 更完整的 Desktop 三场景协作仍有待确认／待实现设计，见 [当前规格](openspec/MIGRATION.md)，不属于本版新增承诺。
 
 ## 常见问题
 
@@ -74,7 +76,7 @@
 
 - [使用指南](docs/usage.md)、[各视图说明](docs/views.md)。
 - [工具参考](docs/tools.md)、[捆绑技能](skills/structured-document-view/SKILL.md)。
-- [当前规格](docs/SPEC.md)、[更新记录](CHANGELOG.md)、[架构](docs/architecture.md)。
+- [当前规格](openspec/MIGRATION.md)、[更新记录](CHANGELOG.md)、[架构](docs/architecture.md)。
 
 
 ## 办公套件
