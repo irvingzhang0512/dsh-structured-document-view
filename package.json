@@ -59,8 +59,7 @@
     "bundle": "tsdown -c tsdown.config.ts",
     "typecheck": "npm run inline:css && tsc -p tsconfig.json --noEmit",
     "test": "npm run inline:css && vitest run",
-    "test:watch": "npm run inline:css && vitest",
-    "prepack": "npm run build"
+    "test:watch": "npm run inline:css && vitest"
   },
   "keywords": [
     "dsh",

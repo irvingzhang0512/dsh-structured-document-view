@@ -31,7 +31,7 @@ DSH（DeepSeek Harness）插件：基于 dsh-better-sidebar 展示**结构化文
 
 - 仓库：`https://github.com/irvingzhang0512/dsh-structured-document-view.git`
 - 默认分支：`main`（初始提交即建于此分支）
-- 发布：通过 npm 发布（见 `package.json` 的 `repository` / `publishConfig`）
+- 本仓库分发：按根 windows-personal-workspace-v2 使用 GitHub 完整固定提交；不以 npm／Release 作为本次安装来源。
 
 ## 目录结构
 
@@ -58,7 +58,7 @@ npm run bundle      # 仅 tsdown 打包
 ```
 
 约定：`src/client/generated/` 由 `scripts/inline-css.mjs` 构建期生成，不提交；
-`lib/`、`node_modules/` 不提交。
+Git 分发须提交完整 `lib/`；`node_modules/` 不提交。
 
 ## Git 提交规范（Angular / Conventional Commits）
 
@@ -114,3 +114,7 @@ chore: 初始化 git 仓库并提交首个版本
 - 保持提交原子化：一次提交只做一件事，便于 `git revert` 与评审；
 - 代码提交前运行 `npm run typecheck` 与 `npm test` 确认通过；
 - 版本号变更与 `CHANGELOG.md` 更新放在发布相关的提交中。
+
+## 2026-10-24 Git 分发约定
+
+根 windows-personal-workspace-v2 已确认自研通过 GitHub 固定提交安装：提交完整运行产物和资源，不依赖安装期构建 hook；开发检查仍显式运行既有 typecheck／test／build 或 JS test／lint。此约定替代旧的 lib 忽略／现场 prepack 做法；不提交 node_modules，不修改业务行为。源码推送、公网安装和本地验证分别记录。

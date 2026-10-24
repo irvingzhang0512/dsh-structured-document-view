@@ -1,0 +1,66 @@
+/**
+ * 视图默认值配置（SPEC F011）：把 better-sidebar 的侧边卡片设置解析成
+ * 可用的视图默认值，并投影到新的视图状态。
+ *
+ * 分工：
+ * - 本模块只做**纯解析与投影**，不接触 better-sidebar（读取 prefs 的职责留在
+ *   客户端适配层 `src/client/sidebar-adapter.tsx`，保持「只有适配层接触
+ *   better-sidebar」的既有约定）；
+ * - 合法取值只有一处定义：解析用 `view-state.ts` 的 `VIEW_NAMES` /
+ *   `MIND_MAP_LAYOUTS`，设置行的 `VIEW_OPTIONS` / `LAYOUT_OPTIONS` 与之逐项对应
+ *   （测试断言两者同源），避免界面选项与合法取值各写一份。
+ *
+ * 依赖方向：本模块单向依赖 `view-state.ts`；`view-state.ts` 不反向依赖本模块
+ * （`resetView` 通过接收「初始状态」参数来采用配置默认值）。
+ */
+import { type MindMapLayout, type ViewName, type ViewState } from './view-state.ts';
+/** 四项侧边卡片设置（键与 `pluginSettings['structured-document-view']` 逐字一致）。 */
+export interface ViewDefaults {
+    /** 会话首次激活时是否自动打开「结构化文档」页签。 */
+    autoOpenTab: boolean;
+    /** 新会话／新运行时的初始视图。 */
+    defaultView: ViewName;
+    /** 新会话／新运行时思维导图的初始布局。 */
+    defaultLayout: MindMapLayout;
+    /** 新会话／新运行时思维导图的初始层级；`0` 表示不限层级。 */
+    defaultMindmapDepth: number;
+}
+/**
+ * 内置默认值：即本变更前的硬编码行为，同时是 better-sidebar 缺失、
+ * 版本过低（无 `pluginToggles`）或取值非法时的回退。
+ *
+ * 视图／布局／导图层级三项**从 `createDefaultViewState()` 推导**（内置默认状态的
+ * 唯一字面量来源），只有 `autoOpenTab` 是本模块新增的默认（它不属于视图状态）。
+ * 这样内置默认只有一处定义，不会留下第二份互相漂移的默认来源。
+ */
+export declare const BUILTIN_VIEW_DEFAULTS: ViewDefaults;
+/** 设置行里 `defaultView` 的选项（与 {@link VIEW_NAMES} 同源校验见测试）。 */
+export declare const VIEW_OPTIONS: ReadonlyArray<{
+    value: ViewName;
+    title: string;
+}>;
+/** 设置行里 `defaultLayout` 的选项（与 {@link MIND_MAP_LAYOUTS} 同源校验见测试）。 */
+export declare const LAYOUT_OPTIONS: ReadonlyArray<{
+    value: MindMapLayout;
+    title: string;
+}>;
+/**
+ * 解析侧边卡片设置。逐字段独立判定：键缺失、类型不符或取值不在枚举内时
+ * **只回退该字段**的内置默认，不做隐式转换、不抛错（A6／A7）。
+ */
+export declare function parseViewDefaults(raw: unknown): ViewDefaults;
+/**
+ * 把配置里的层级映射为视图状态内部的层级：`0` 表示不限层级，
+ * 而内部用 `null` 表达「不限」（`ViewState.viewDepths` 是 `number | null`）。
+ */
+export declare function mindmapDepthToInternal(depth: number): number | null;
+/**
+ * 按配置默认值生成一份新的初始视图状态：在内置默认状态之上只覆盖
+ * 视图、布局与思维导图层级三个字段（其余字段保持内置默认）。
+ *
+ * `depth` 必须与 `viewDepths[currentView]` 一致（`setView` 维护的既有不变式）：
+ * 渲染层与状态镜像读的是 `state.depth`（导图适配器额外用
+ * `viewDepths.mindmap`），只改 `viewDepths` 会让工具栏层级控件与
+ * `get_view_state` 把「已配置的层级」报告成「不限」，与画面不一致。
+ */
+export declare function initialViewState(defaults?: ViewDefaults): ViewState;
