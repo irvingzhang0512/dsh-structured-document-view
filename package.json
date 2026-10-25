@@ -1,6 +1,6 @@
 {
   "name": "dsh-structured-document-view",
-  "version": "0.2.1-rc.2+rev.1",
+  "version": "0.2.1-rc.3+rev.1",
   "description": "为结构化文档提供 Markdown、思维导图和表格展示，支持切换视图、定位与筛选。",
   "type": "module",
   "repository": {
@@ -41,7 +41,7 @@
   ],
   "engines": {
     "node": ">=20",
-    "dsh": "0.2.1-rc.2"
+    "dsh": "0.2.1-rc.3"
   },
   "dsh": {
     "bundle": {
@@ -78,12 +78,12 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "4.0.5",
-    "@deepseek-ai/dsh-skill": "0.2.1-rc.2",
-    "@deepseek-ai/dsh-tools": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-skill": "0.2.1-rc.3",
+    "@deepseek-ai/dsh-tools": "0.2.1-rc.3",
     "dsh-better-sidebar": "0.28.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "@deepseek-ai/dsh-client-connection": "0.2.1-rc.2"
+    "@deepseek-ai/dsh-client-connection": "0.2.1-rc.3"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh-skill": {
@@ -95,10 +95,10 @@
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.0.5",
-    "@deepseek-ai/dsh-llm": "0.2.1-rc.2",
-    "@deepseek-ai/dsh-scope": "0.2.1-rc.2",
-    "@deepseek-ai/dsh-skill": "0.2.1-rc.2",
-    "@deepseek-ai/dsh-tools": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-llm": "0.2.1-rc.3",
+    "@deepseek-ai/dsh-scope": "0.2.1-rc.3",
+    "@deepseek-ai/dsh-skill": "0.2.1-rc.3",
+    "@deepseek-ai/dsh-tools": "0.2.1-rc.3",
     "@types/node": "24.19.2",
     "@types/react": "18.3.31",
     "@types/react-dom": "18.3.7",
@@ -109,6 +109,6 @@
     "tsdown": "0.23.1",
     "typescript": "5.9.3",
     "vitest": "4.1.12",
-    "@deepseek-ai/dsh-client-connection": "0.2.1-rc.2"
+    "@deepseek-ai/dsh-client-connection": "0.2.1-rc.3"
   }
 }
